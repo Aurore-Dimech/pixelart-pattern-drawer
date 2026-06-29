@@ -38,10 +38,7 @@ export function PixelEditor({
     canRedo,
     reset,
     serialize,
-  } = usePixelGrid(
-    initialData?.width ?? 16,
-    initialData?.height ?? 16
-  );
+  } = usePixelGrid(initialData);
 
   const handleExportPNG = () => {
     const canvas = canvasRef.current;

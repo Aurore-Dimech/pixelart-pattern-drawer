@@ -11,7 +11,7 @@ model User {
   id        String   @id @default(cuid())
   email     String   @unique
   password  String
-  name      String?
+  name      String  @unique
   createdAt DateTime @default(now())
 
   drawings  Drawing[]
@@ -29,8 +29,25 @@ model Drawing {
   updatedAt   DateTime @updatedAt
 
   authorId  String
-  author    User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  author    User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
   favorites Favorite[]
+  tags      DrawingTag[]
+}
+
+model Tag {
+  id       String       @id @default(cuid())
+  name     String       @unique
+  slug     String       @unique
+  drawings DrawingTag[]
+}
+
+model DrawingTag {
+  drawingId String
+  tagId     String
+  drawing   Drawing @relation(fields: [drawingId], references: [id], onDelete: Cascade)
+  tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([drawingId, tagId])
 }
 
 model Favorite {

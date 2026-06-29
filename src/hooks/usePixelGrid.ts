@@ -30,11 +30,10 @@ interface UsePixelGridReturn {
 }
 
 export function usePixelGrid(
-  initialWidth = 16,
-  initialHeight = 16
+  initialData?: GridData
 ): UsePixelGridReturn {
   const [grid, setGrid] = useState<GridData>(() =>
-    createEmptyGrid(initialWidth, initialHeight)
+    initialData ?? createEmptyGrid(16, 16)
   );
   const [activeColor, setActiveColor] = useState("#000000");
   const [activeTool, setActiveTool] = useState<"pen" | "eraser">("pen");

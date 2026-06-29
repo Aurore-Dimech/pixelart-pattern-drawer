@@ -1,5 +1,7 @@
 "use client";
+
 import { useState } from "react";
+import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -13,23 +15,29 @@ export default function RegisterPage() {
     setLoading(true);
     setError("");
     const form = new FormData(e.currentTarget);
+    const name = form.get("name") as string;
+    const email = form.get("email") as string;
+    const password = form.get("password") as string;
 
     const res = await fetch("/api/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email: form.get("email"),
-        password: form.get("password"),
-        name: form.get("name"),
-      }),
+      body: JSON.stringify({ name, email, password }),
     });
 
     const data = await res.json();
     if (!res.ok) {
       setError(data.error);
       setLoading(false);
+      return;
+    }
+
+    const result = await signIn("credentials", { email, password, redirect: false });
+    if (result?.error) {
+      setError("Compte créé mais connexion automatique échouée. Connecte-toi manuellement.");
+      router.push("/login");
     } else {
-      router.push("/login?registered=1");
+      router.push("/dashboard");
     }
   }
 
@@ -39,15 +47,26 @@ export default function RegisterPage() {
         <h1 className="text-2xl font-bold mb-6 text-center">Créer un compte</h1>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Nom (optionnel)</label>
+            <label className="block text-sm font-medium mb-1">
+              Nom d'utilisateur <span className="text-red-500">*</span>
+            </label>
             <input
               name="name"
               type="text"
+              required
+              minLength={2}
+              maxLength={32}
+              pattern="[a-zA-Z0-9_\-]+"
+              title="Lettres, chiffres, _ et - uniquement"
+              placeholder="ex: pixel_master42"
               className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
+            <p className="text-xs text-gray-400 mt-1">Lettres, chiffres, _ et - · Visible publiquement</p>
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Email</label>
+            <label className="block text-sm font-medium mb-1">
+              Email <span className="text-red-500">*</span>
+            </label>
             <input
               name="email"
               type="email"
@@ -56,7 +75,9 @@ export default function RegisterPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Mot de passe</label>
+            <label className="block text-sm font-medium mb-1">
+              Mot de passe <span className="text-red-500">*</span>
+            </label>
             <input
               name="password"
               type="password"
@@ -71,7 +92,7 @@ export default function RegisterPage() {
             disabled={loading}
             className="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-50"
           >
-            {loading ? "Création..." : "Créer mon compte"}
+            {loading ? "Création en cours..." : "Créer mon compte"}
           </button>
         </form>
         <p className="text-center text-sm mt-4 text-gray-600">

@@ -8,8 +8,10 @@ export const GridDataSchema = z.object({
   pixels: z.array(z.string().regex(HEX_COLOR)),
 }).refine(
   (d) => d.pixels.length === d.width * d.height,
-  (d) => ({ message: `pixels: attendu ${d.width * d.height}, reçu ${d.pixels.length}` })
+  { message: "pixels: longueur incorrecte (width × height attendu)" }
 );
+
+const TagSlugsSchema = z.array(z.string().regex(/^[a-z0-9-]+$/).max(32)).max(10).optional();
 
 export const CreateDrawingSchema = z.object({
   title: z.string().min(1, "Le titre est requis").max(100),
@@ -18,7 +20,7 @@ export const CreateDrawingSchema = z.object({
       const parsed = JSON.parse(str);
       const result = GridDataSchema.safeParse(parsed);
       if (!result.success) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: result.error.errors[0].message });
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: result.error.issues[0].message });
         return z.NEVER;
       }
       return str;
@@ -27,4 +29,28 @@ export const CreateDrawingSchema = z.object({
       return z.NEVER;
     }
   }),
+  tags: TagSlugsSchema,
+});
+
+export const UpdateDrawingSchema = z.object({
+  title: z.string().min(1).max(100).optional(),
+  gridData: z.string().transform((str, ctx) => {
+    try {
+      const parsed = JSON.parse(str);
+      const result = GridDataSchema.safeParse(parsed);
+      if (!result.success) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: result.error.issues[0].message });
+        return z.NEVER;
+      }
+      return str;
+    } catch {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "gridData invalide" });
+      return z.NEVER;
+    }
+  }).optional(),
+  tags: TagSlugsSchema,
+});
+
+export const PublishDrawingSchema = z.object({
+  publish: z.boolean(),
 });

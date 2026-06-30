@@ -38,7 +38,8 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json({ data: { id: user.id } }, { status: 201 });
-  } catch {
+  } catch (err) {
+    console.error("[api/register]", err);
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
   }
 }

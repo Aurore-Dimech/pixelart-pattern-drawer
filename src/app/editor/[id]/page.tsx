@@ -18,7 +18,12 @@ export default async function EditorEditPage({ params }: Props) {
 
   if (!drawing || drawing.authorId !== session.user.id) notFound();
 
-  const gridData: GridData = JSON.parse(drawing.gridData);
+  let gridData: GridData;
+  try {
+    gridData = JSON.parse(drawing.gridData);
+  } catch {
+    notFound();
+  }
   const tags = drawing.tags.map((dt) => dt.tag.slug);
 
   return (

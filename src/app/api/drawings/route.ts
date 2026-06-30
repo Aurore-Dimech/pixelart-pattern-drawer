@@ -42,7 +42,8 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json({ data: drawing }, { status: 201 });
-  } catch {
+  } catch (err) {
+    console.error("[api/drawings]", err);
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
   }
 }

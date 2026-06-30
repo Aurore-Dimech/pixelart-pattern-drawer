@@ -14,7 +14,9 @@ export function PixelEditorClient() {
     });
     if (!res.ok) throw new Error("Erreur sauvegarde");
     const data = await res.json();
-    router.push(`/editor/${data.data.id}`);
+    const id = data?.data?.id;
+    if (!id) throw new Error("Identifiant manquant dans la réponse");
+    router.push(`/editor/${id}`);
   };
 
   return <PixelEditor onSave={handleSave} />;

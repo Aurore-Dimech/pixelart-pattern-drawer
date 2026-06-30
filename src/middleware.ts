@@ -10,7 +10,9 @@ export async function middleware(req: NextRequest) {
     req.nextUrl.pathname.startsWith("/editor");
 
   if (isProtected && !isLoggedIn) {
-    return NextResponse.redirect(new URL("/login", req.nextUrl));
+    const loginUrl = new URL("/login", req.nextUrl);
+    loginUrl.searchParams.set("callbackUrl", req.nextUrl.pathname);
+    return NextResponse.redirect(loginUrl);
   }
 
   return NextResponse.next();

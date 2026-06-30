@@ -38,6 +38,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Thème invalide" }, { status: 400 });
   }
 
+  if (!process.env.ANTHROPIC_API_KEY) {
+    console.warn("[ai/palette] ANTHROPIC_API_KEY manquante — fallback palette");
+    return NextResponse.json({ data: DEFAULT_PALETTE, fallback: true });
+  }
+
   try {
     const { default: Anthropic } = await import("@anthropic-ai/sdk");
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -59,8 +64,9 @@ export async function POST(req: Request) {
     if (colors) {
       return NextResponse.json({ data: colors });
     }
-  } catch {
-    // Fallback intentionnel si l'API est indisponible
+  } catch (err) {
+    // WHY: fallback intentionnel si l'API est indisponible
+    console.error("[ai/palette]", err instanceof Error ? err.message : err);
   }
 
   return NextResponse.json({ data: DEFAULT_PALETTE, fallback: true });

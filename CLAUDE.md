@@ -5,7 +5,8 @@
 Application web permettant aux utilisateurs de créer, sauvegarder et partager des dessins en pixel art. Les utilisateurs peuvent publier leurs créations dans une galerie publique et enregistrer les œuvres d'autres utilisateurs en favoris.
 
 **Audience cible** : créateurs de pixel art amateurs, gamers, designers rétro.  
-**Objectif pédagogique** : démontrer une collaboration humain/IA structurée sur un vrai produit full-stack.
+**Objectif pédagogique** : démontrer une collaboration humain/IA structurée sur un vrai produit full-stack.  
+**Contexte** : application locale pour un cours universitaire — pas de déploiement public prévu.
 
 ---
 
@@ -18,7 +19,7 @@ Application web permettant aux utilisateurs de créer, sauvegarder et partager d
 | Styles | Tailwind CSS |
 | Auth | NextAuth.js v5 (beta) |
 | ORM | Prisma |
-| Base de données | SQLite (dev) |
+| Base de données | SQLite (local, définitif — pas de migration PostgreSQL prévue) |
 | Validation | Zod |
 | Tests | Jest + Testing Library |
 | Lint | ESLint + Prettier |
@@ -48,7 +49,7 @@ Application web permettant aux utilisateurs de créer, sauvegarder et partager d
 
 ### API REST
 - Ressources au pluriel : `/api/drawings`, `/api/favorites`
-- Actions imbriquées : `/api/drawings/[id]/publish`, `/api/drawings/[id]/favorite`
+- Actions imbriquées : `/api/drawings/[id]/publish`
 - Réponses toujours typées avec un wrapper `{ data, error }`
 
 ---
@@ -57,65 +58,138 @@ Application web permettant aux utilisateurs de créer, sauvegarder et partager d
 
 ```
 src/
-├── app/                    # Next.js App Router
-│   ├── api/                # Routes API (Server)
+├── app/
+│   ├── api/
 │   │   ├── auth/
 │   │   ├── drawings/
-│   │   └── favorites/
-│   ├── (auth)/             # Route group — pages auth (non indexées)
+│   │   ├── favorites/
+│   │   ├── gallery/
+│   │   └── ai/palette/
+│   ├── (auth)/
 │   │   ├── login/
 │   │   └── register/
-│   ├── gallery/            # Galerie publique
-│   ├── editor/             # Éditeur pixel art
-│   │   └── [id]/           # Édition d'un dessin existant
-│   └── dashboard/          # Mes dessins
+│   ├── gallery/
+│   ├── editor/
+│   │   └── [id]/
+│   └── dashboard/
 ├── components/
-│   ├── editor/             # Composants de l'éditeur
-│   ├── gallery/            # Composants de la galerie
-│   └── ui/                 # Composants génériques (Button, Modal…)
+│   ├── editor/
+│   ├── gallery/
+│   └── ui/
 ├── lib/
-│   ├── prisma.ts           # Client Prisma singleton
-│   ├── auth.ts             # Config NextAuth
-│   └── validators/         # Schémas Zod
-├── hooks/                  # Hooks React custom
-└── types/                  # Types TypeScript partagés
+│   ├── prisma.ts
+│   ├── auth.ts
+│   └── validators/
+├── hooks/
+└── types/
 ```
 
 ---
 
-## Règles pour l'IA (Claude)
+## Règles opérationnelles pour Claude
 
-### Ce que l'IA DOIT faire
-- Toujours respecter le typage TypeScript strict (pas de `any`)
-- Suivre les conventions de nommage définies ci-dessus
-- Utiliser Zod pour toute validation de données entrantes (API routes)
-- Commenter les décisions non-évidentes avec `// WHY:` 
-- Proposer des alternatives quand plusieurs approches existent
-- Signaler toute dette technique introduite avec `// TECH-DEBT:`
+### Règle 1 — Confirmation obligatoire avant toute modification
 
-### Ce que l'IA NE DOIT PAS faire
+Claude ne doit toucher à aucun fichier sans permission explicite. Avant toute modification, Claude doit :
+1. Lister les fichiers qu'il compte modifier
+2. Décrire brièvement chaque changement
+3. Attendre la confirmation de l'utilisateur
+
+Cette règle s'applique à chaque tâche, sans exception.
+
+### Règle 2 — Gestion d'erreurs : toujours logger
+
+Tout bloc `catch` doit au minimum appeler `console.error`. Les erreurs ne doivent jamais être avalées silencieusement :
+
+```ts
+// ❌ Interdit
+} catch {
+  return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
+}
+
+// ✅ Requis
+} catch (err) {
+  console.error("[api/drawings]", err);
+  return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
+}
+```
+
+Exception acceptable : `catch` de parse JSON retournant immédiatement un 400.
+
+### Règle 3 — Tests Jest obligatoires
+
+Toute nouvelle fonctionnalité doit être accompagnée de tests Jest. Les tests existants ne doivent pas régresser. Une fonctionnalité sans tests n'est pas considérée terminée.
+
+### Règle 4 — Pas de code dupliqué injustifié
+
+Extraire dans un utilitaire ou un hook toute logique répétée à 2+ endroits. Justifier explicitement si la duplication est intentionnelle.
+
+### Règle 5 — Aucune information sensible exposée
+
+Ne jamais exposer dans les réponses API, logs ou composants client :
+- Mots de passe ou hash de mots de passe
+- Clés API (y compris `ANTHROPIC_API_KEY`)
+- Emails d'autres utilisateurs
+
+Dans les requêtes Prisma : utiliser `select: { name: true }` (jamais `email: true`) pour les données d'auteur publiques.
+
+---
+
+## Ce que Claude NE DOIT PAS faire
+
+- Toucher un fichier sans confirmation préalable (Règle 1)
+- Exposer des informations sensibles (Règle 5)
+- Dupliquer du code sans justification (Règle 4)
 - Installer de nouvelles dépendances sans les mentionner explicitement
 - Modifier le schéma Prisma sans créer une migration nommée
 - Contourner NextAuth pour la gestion de session
 - Utiliser `localStorage` pour persister des données métier
 - Ajouter des appels API Anthropic dans des hot paths (éditeur en temps réel)
+- Migrer vers PostgreSQL ou toute autre base de données
 
-### Intégration IA (Anthropic API)
-- Utilisée uniquement pour : suggestion de palette, génération de nom/description
-- Toujours avec un fallback si l'API est indisponible
-- Coût contrôlé : max 1 appel par action utilisateur explicite
+---
+
+## Contraintes projet
+
+| Contrainte | Valeur |
+|---|---|
+| Base de données | SQLite uniquement — définitif |
+| Déploiement | Local uniquement |
+| Prochaine version | Pas de v4 planifiée |
+| Librairies externes | Minimiser — pas de librairies de composants visuels supplémentaires |
+
+---
+
+## Règles métier en place
+
+Ces règles sont implémentées dans le code — ne pas les casser :
+
+| Règle | Emplacement | Comportement |
+|---|---|---|
+| Max 3 tags par dessin | `lib/validators/drawing.ts`, `PixelEditorEditClient.tsx` | Rejeté côté serveur + compteur `X/3` côté client |
+| Auto-favori interdit | `api/favorites/route.ts:42` | 403 si `authorId === userId` |
+| Dessin dépublié inaccessible | `api/drawings/[id]/route.ts:20` | 403 si `!isPublished && !isOwner` |
+| Suppression en cascade | `prisma/schema.prisma` | `onDelete: Cascade` sur Favorite |
+| Validation nom d'utilisateur | `api/register/route.ts` | min 2, max 32, `[a-zA-Z0-9_-]`, unique |
 
 ---
 
 ## Gates déterministes
-
-Chaque donnée critique est validée par un gate avant persistance :
 
 | Gate | Fichier | Ce qu'il valide |
 |---|---|---|
 | `GridDataSchema` | `lib/validators/drawing.ts` | Format JSON grille, dimensions, couleurs hex |
 | `RegisterSchema` | `app/api/register/route.ts` | Nom, email, password (longueur, format) |
 | `UpdateDrawingSchema` | `lib/validators/drawing.ts` | Titre, gridData, tags sur PUT drawing |
+
+---
+
+## Intégration IA (Anthropic API)
+
+- Utilisée uniquement pour : suggestion de palette (`POST /api/ai/palette`)
+- Toujours avec un fallback sur `DEFAULT_PALETTE` si l'API est indisponible
+- Coût contrôlé : max 1 appel par action utilisateur explicite
+- Ne jamais exposer `ANTHROPIC_API_KEY` côté client
 
 ---
 

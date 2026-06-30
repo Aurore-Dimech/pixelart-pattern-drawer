@@ -22,11 +22,21 @@ export function DashboardClient({ drawings: initial }: { drawings: Drawing[] }) 
   const [pending, setPending] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
 
-  const togglePublish = async (id: string) => {
+  const togglePublish = async (id: string, currentIsPublished: boolean) => {
+    const newState = !currentIsPublished;
     setPending((p) => ({ ...p, [id]: true }));
-    const res = await fetch(`/api/drawings/${id}/publish`, { method: "POST" });
+    const res = await fetch(`/api/drawings/${id}/publish`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ publish: newState }),
+    });
     if (res.ok) {
       const { data } = await res.json();
+      if (typeof data?.isPublished !== "boolean") {
+        toast("Erreur lors de la publication", "error");
+        setPending((p) => ({ ...p, [id]: false }));
+        return;
+      }
       setDrawings((prev) =>
         prev.map((d) => (d.id === id ? { ...d, isPublished: data.isPublished } : d))
       );
@@ -119,7 +129,7 @@ export function DashboardClient({ drawings: initial }: { drawings: Drawing[] }) 
                   Éditer
                 </Link>
                 <button
-                  onClick={() => togglePublish(drawing.id)}
+                  onClick={() => togglePublish(drawing.id, drawing.isPublished)}
                   disabled={pending[drawing.id]}
                   aria-label={`${drawing.isPublished ? "Dépublier" : "Publier"} ${drawing.title}`}
                   className={`flex-1 text-xs px-2 py-1.5 rounded-lg font-medium transition-colors disabled:opacity-50 ${

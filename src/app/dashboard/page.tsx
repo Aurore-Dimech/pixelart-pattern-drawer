@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import Link from "next/link";
 import { DashboardClient } from "./DashboardClient";
 
 export default async function DashboardPage() {
@@ -16,13 +17,13 @@ export default async function DashboardPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-2xl font-bold text-gray-800">Mes dessins</h1>
-        <a
+        <h1 className="text-2xl font-bold text-gray-900">Mes dessins</h1>
+        <Link
           href="/editor"
-          className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700"
+          className="bg-rose-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-rose-700 transition-colors"
         >
           + Nouveau dessin
-        </a>
+        </Link>
       </div>
       <DashboardClient drawings={JSON.parse(JSON.stringify(drawings))} />
     </div>

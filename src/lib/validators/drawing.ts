@@ -11,7 +11,7 @@ export const GridDataSchema = z.object({
   { message: "pixels: longueur incorrecte (width × height attendu)" }
 );
 
-const TagSlugsSchema = z.array(z.string().regex(/^[a-z0-9-]+$/).max(32)).max(10).optional();
+const TagSlugsSchema = z.array(z.string().min(1).regex(/^[a-z0-9-]+$/).max(32)).max(3, "3 tags maximum").optional();
 
 export const CreateDrawingSchema = z.object({
   title: z.string().min(1, "Le titre est requis").max(100),
@@ -49,8 +49,4 @@ export const UpdateDrawingSchema = z.object({
     }
   }).optional(),
   tags: TagSlugsSchema,
-});
-
-export const PublishDrawingSchema = z.object({
-  publish: z.boolean(),
 });

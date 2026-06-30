@@ -33,7 +33,10 @@ export async function PUT(req: Request, { params }: Params) {
   if (!drawing) return NextResponse.json({ error: "Introuvable" }, { status: 404 });
   if (drawing.authorId !== session.user.id) return NextResponse.json({ error: "Accès refusé" }, { status: 403 });
 
-  const body = await req.json();
+  let body: unknown;
+  try { body = await req.json(); } catch {
+    return NextResponse.json({ error: "Corps de requête invalide" }, { status: 400 });
+  }
   const parsed = UpdateDrawingSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });

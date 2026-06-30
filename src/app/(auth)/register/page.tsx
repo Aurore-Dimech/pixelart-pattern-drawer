@@ -15,9 +15,9 @@ export default function RegisterPage() {
     setLoading(true);
     setError("");
     const form = new FormData(e.currentTarget);
-    const name = form.get("name") as string;
-    const email = form.get("email") as string;
-    const password = form.get("password") as string;
+    const name = (form.get("name") ?? "") as string;
+    const email = (form.get("email") ?? "") as string;
+    const password = (form.get("password") ?? "") as string;
 
     const res = await fetch("/api/register", {
       method: "POST",
@@ -42,15 +42,20 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="bg-white p-8 rounded-xl shadow-md w-full max-w-md">
-        <h1 className="text-2xl font-bold mb-6 text-center">Créer un compte</h1>
-        <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="min-h-[calc(100vh-3.5rem)] flex items-center justify-center bg-gradient-to-br from-rose-50 via-white to-amber-50 px-4 py-12">
+      <div className="bg-white rounded-2xl shadow-lg border border-rose-100 w-full max-w-md p-8">
+        <div className="text-center mb-8">
+          <h1 className="text-2xl font-bold text-gray-900">Créer un compte</h1>
+          <p className="text-sm text-gray-500 mt-1">Rejoins la communauté PixelArt</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-5" noValidate>
           <div>
-            <label className="block text-sm font-medium mb-1">
-              Nom d'utilisateur <span className="text-red-500">*</span>
+            <label htmlFor="reg-name" className="block text-sm font-medium text-gray-700 mb-1.5">
+              Nom d&apos;utilisateur
             </label>
             <input
+              id="reg-name"
               name="name"
               type="text"
               required
@@ -59,45 +64,65 @@ export default function RegisterPage() {
               pattern="[a-zA-Z0-9_\-]+"
               title="Lettres, chiffres, _ et - uniquement"
               placeholder="ex: pixel_master42"
-              className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              autoComplete="username"
+              aria-describedby="reg-name-hint"
+              className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 focus:bg-white transition-colors"
             />
-            <p className="text-xs text-gray-400 mt-1">Lettres, chiffres, _ et - · Visible publiquement</p>
+            <p id="reg-name-hint" className="text-xs text-gray-400 mt-1.5">
+              Lettres, chiffres, _ et - · Visible publiquement
+            </p>
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">
-              Email <span className="text-red-500">*</span>
+            <label htmlFor="reg-email" className="block text-sm font-medium text-gray-700 mb-1.5">
+              Email
             </label>
             <input
+              id="reg-email"
               name="email"
               type="email"
               required
-              className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              autoComplete="email"
+              placeholder="ton@email.com"
+              className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 focus:bg-white transition-colors"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">
-              Mot de passe <span className="text-red-500">*</span>
+            <label htmlFor="reg-password" className="block text-sm font-medium text-gray-700 mb-1.5">
+              Mot de passe
             </label>
             <input
+              id="reg-password"
               name="password"
               type="password"
               required
               minLength={6}
-              className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              autoComplete="new-password"
+              placeholder="Minimum 6 caractères"
+              aria-describedby="reg-password-hint"
+              className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 focus:bg-white transition-colors"
             />
+            <p id="reg-password-hint" className="sr-only">Le mot de passe doit contenir au moins 6 caractères</p>
           </div>
-          {error && <p className="text-red-500 text-sm">{error}</p>}
+
+          {error && (
+            <div role="alert" className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-2.5 rounded-lg">
+              {error}
+            </div>
+          )}
+
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+            aria-disabled={loading}
+            className="w-full bg-rose-600 text-white py-3 rounded-xl font-semibold hover:bg-rose-700 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
           >
-            {loading ? "Création en cours..." : "Créer mon compte"}
+            {loading ? "Création en cours…" : "Créer mon compte"}
           </button>
         </form>
-        <p className="text-center text-sm mt-4 text-gray-600">
+
+        <p className="text-center text-sm mt-6 text-gray-500">
           Déjà un compte ?{" "}
-          <Link href="/login" className="text-indigo-600 hover:underline">
+          <Link href="/login" className="text-rose-600 font-medium hover:underline">
             Se connecter
           </Link>
         </p>

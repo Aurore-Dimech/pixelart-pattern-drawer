@@ -1,8 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import { Heart } from "lucide-react";
 import { DrawingMiniature } from "@/components/gallery/DrawingMiniature";
 import { DrawingViewer } from "@/components/gallery/DrawingViewer";
+import { useToast } from "@/components/ui/Toast";
 
 interface Tag { id: string; name: string; slug: string }
 interface Drawing {
@@ -19,6 +22,7 @@ export function FavoritesClient({ drawings: initial }: { drawings: Drawing[] }) 
   const [drawings, setDrawings] = useState(initial);
   const [removing, setRemoving] = useState<Record<string, boolean>>({});
   const [viewed, setViewed] = useState<Drawing | null>(null);
+  const { toast } = useToast();
 
   const removeFavorite = async (drawingId: string) => {
     setRemoving((r) => ({ ...r, [drawingId]: true }));
@@ -26,17 +30,25 @@ export function FavoritesClient({ drawings: initial }: { drawings: Drawing[] }) 
     if (res.ok) {
       setDrawings((prev) => prev.filter((d) => d.id !== drawingId));
       if (viewed?.id === drawingId) setViewed(null);
+      toast("Retiré des favoris");
+    } else {
+      toast("Erreur lors de la suppression", "error");
     }
     setRemoving((r) => ({ ...r, [drawingId]: false }));
   };
 
   if (drawings.length === 0) {
     return (
-      <div className="text-center py-20 text-gray-500">
-        <p className="mb-4">Tu n'as pas encore de favoris.</p>
-        <a href="/gallery" className="text-indigo-600 hover:underline font-medium">
-          Explorer la galerie →
-        </a>
+      <div className="text-center py-24 text-gray-500">
+        <Heart size={40} className="mx-auto text-gray-300 mb-4" aria-hidden="true" />
+        <p className="font-medium text-gray-700 mb-1">Aucun favori pour l&apos;instant</p>
+        <p className="text-sm text-gray-400 mb-6">Explore la galerie et ajoute des dessins à tes favoris</p>
+        <Link
+          href="/gallery"
+          className="inline-block bg-rose-600 text-white px-6 py-2.5 rounded-xl font-semibold hover:bg-rose-700 transition-colors text-sm"
+        >
+          Explorer la galerie
+        </Link>
       </div>
     );
   }
@@ -50,51 +62,53 @@ export function FavoritesClient({ drawings: initial }: { drawings: Drawing[] }) 
         isLoggedIn={true}
       />
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+      <ul className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 list-none p-0">
         {drawings.map((drawing) => (
-          <div
-            key={drawing.id}
-            className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col"
-          >
-            <button
-              onClick={() => setViewed(drawing)}
-              className="bg-gray-100 flex items-center justify-center p-3 hover:bg-gray-200 transition-colors"
-            >
-              <DrawingMiniature gridData={drawing.gridData} size={80} />
-            </button>
-
-            <div className="p-2 flex flex-col gap-1 flex-1">
+          <li key={drawing.id}>
+            <article className="group bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all overflow-hidden">
+              {/* Miniature */}
               <button
                 onClick={() => setViewed(drawing)}
-                className="text-xs font-semibold text-gray-800 truncate text-left hover:text-indigo-600"
+                className="aspect-square bg-rose-50/30 relative overflow-hidden w-full block"
+                aria-label={`Voir ${drawing.title} par ${drawing.author.name}`}
               >
-                {drawing.title}
+                <span className="absolute inset-0 flex items-center justify-center">
+                  <DrawingMiniature gridData={drawing.gridData} size={110} />
+                </span>
+                <span className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-2.5" aria-hidden="true">
+                  <span className="text-white text-xs font-semibold truncate leading-tight">{drawing.title}</span>
+                  <span className="text-white/70 text-xs truncate">par {drawing.author.name}</span>
+                </span>
               </button>
-              <p className="text-xs text-gray-400 truncate">{drawing.author.name}</p>
 
-              {drawing.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1">
-                  {drawing.tags.map((tag) => (
-                    <span key={tag.id} className="text-xs bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded-full">
-                      {tag.name}
-                    </span>
-                  ))}
+              {/* Footer */}
+              <div className="p-2.5 flex flex-col gap-2">
+                <div className="flex items-center justify-between gap-1">
+                  <div className="flex flex-wrap gap-1 min-w-0">
+                    {drawing.tags.map((tag) => (
+                      <span key={tag.id} className="text-xs bg-rose-50 text-rose-700 px-1.5 py-0.5 rounded-md">
+                        {tag.name}
+                      </span>
+                    ))}
+                  </div>
+                  <span className="text-xs text-gray-300 shrink-0" aria-label={`${drawing.favoriteCount} favori${drawing.favoriteCount !== 1 ? "s" : ""}`}>
+                    <span aria-hidden="true">♥</span> {drawing.favoriteCount}
+                  </span>
                 </div>
-              )}
 
-              <p className="text-xs text-gray-400 mt-auto">♥ {drawing.favoriteCount}</p>
-
-              <button
-                onClick={() => removeFavorite(drawing.id)}
-                disabled={removing[drawing.id]}
-                className="text-xs px-2 py-1 rounded bg-red-50 text-red-500 hover:bg-red-100 mt-1 disabled:opacity-50"
-              >
-                Retirer
-              </button>
-            </div>
-          </div>
+                <button
+                  onClick={() => removeFavorite(drawing.id)}
+                  disabled={removing[drawing.id]}
+                  aria-label={`Retirer ${drawing.title} des favoris`}
+                  className="w-full text-xs py-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-colors disabled:opacity-50 font-medium"
+                >
+                  Retirer des favoris
+                </button>
+              </div>
+            </article>
+          </li>
         ))}
-      </div>
+      </ul>
     </>
   );
 }

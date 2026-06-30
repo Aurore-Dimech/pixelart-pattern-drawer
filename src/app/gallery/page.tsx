@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { GalleryClient } from "./GalleryClient";
+import { GALLERY_PAGE_SIZE } from "@/lib/constants";
 
 type Props = {
   searchParams: Promise<{ search?: string; tag?: string; page?: string }>;
@@ -12,7 +13,7 @@ export default async function GalleryPage({ searchParams }: Props) {
   const userId = session?.user?.id;
 
   const page = Math.max(1, parseInt(pageStr, 10));
-  const pageSize = 24;
+  const pageSize = GALLERY_PAGE_SIZE;
 
   const where = {
     isPublished: true,
@@ -46,6 +47,7 @@ export default async function GalleryPage({ searchParams }: Props) {
     tags: d.tags.map((dt) => dt.tag),
     favoriteCount: d._count.favorites,
     isFavorited: userId ? (d.favorites as { id: string }[]).length > 0 : false,
+    isOwn: userId === d.authorId,
   }));
 
   return (

@@ -113,9 +113,9 @@ Chaque donnée critique est validée par un gate avant persistance :
 
 | Gate | Fichier | Ce qu'il valide |
 |---|---|---|
-| `validateGridData` | `lib/validators/drawing.ts` | Format JSON grille, dimensions, couleurs hex |
-| `validateUserInput` | `lib/validators/user.ts` | Email, password (longueur, complexité) |
-| `validatePublishRequest` | `lib/validators/drawing.ts` | Dessin non vide, titre présent |
+| `GridDataSchema` | `lib/validators/drawing.ts` | Format JSON grille, dimensions, couleurs hex |
+| `RegisterSchema` | `app/api/register/route.ts` | Nom, email, password (longueur, format) |
+| `UpdateDrawingSchema` | `lib/validators/drawing.ts` | Titre, gridData, tags sur PUT drawing |
 
 ---
 

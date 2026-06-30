@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { GALLERY_PAGE_SIZE } from "@/lib/constants";
 
 export async function GET(req: Request) {
   const session = await auth();
@@ -9,7 +10,7 @@ export async function GET(req: Request) {
   const search = searchParams.get("search")?.trim() ?? "";
   const tag = searchParams.get("tag")?.trim() ?? "";
   const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
-  const pageSize = 24;
+  const pageSize = GALLERY_PAGE_SIZE;
 
   const drawings = await prisma.drawing.findMany({
     where: {

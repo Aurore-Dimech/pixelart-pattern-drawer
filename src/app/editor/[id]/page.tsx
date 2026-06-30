@@ -22,11 +22,11 @@ export default async function EditorEditPage({ params }: Props) {
   const tags = drawing.tags.map((dt) => dt.tag.slug);
 
   return (
-    <div className="max-w-5xl mx-auto py-8">
-      <h1 className="text-2xl font-bold text-gray-800 mb-6 px-6">
+    <div className="max-w-5xl mx-auto px-4 py-8">
+      <h1 className="text-2xl font-bold text-gray-900 mb-4">
         Éditer : {drawing.title}
       </h1>
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
         <PixelEditorEditClient
           drawingId={id}
           initialData={gridData}

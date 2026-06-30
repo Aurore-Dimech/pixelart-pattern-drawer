@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useCallback } from "react";
+import { useRef, useEffect } from "react";
 import { GridData } from "@/types";
 
 const CELL_SIZE = 28;
@@ -18,7 +18,7 @@ export function PixelCanvas({ grid, onPaint, canvasRef: externalRef }: PixelCanv
   const canvasRef = externalRef ?? internalRef;
   const isDrawing = useRef(false);
 
-  const draw = useCallback(() => {
+  useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -39,8 +39,6 @@ export function PixelCanvas({ grid, onPaint, canvasRef: externalRef }: PixelCanv
       }
     }
   }, [grid, canvasRef]);
-
-  useEffect(() => { draw(); }, [draw]);
 
   const getPixelCoords = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -63,8 +61,8 @@ export function PixelCanvas({ grid, onPaint, canvasRef: externalRef }: PixelCanv
 
   return (
     <div className="inline-block">
-      {/* Ligne du haut : coin vide + numéros de colonnes */}
-      <div className="flex" style={{ paddingLeft: NUM_MARGIN }}>
+      {/* Numéros de colonnes */}
+      <div className="flex" style={{ paddingLeft: NUM_MARGIN }} aria-hidden="true">
         {Array.from({ length: grid.width }, (_, x) => (
           <div
             key={x}
@@ -75,9 +73,9 @@ export function PixelCanvas({ grid, onPaint, canvasRef: externalRef }: PixelCanv
         ))}
       </div>
 
-      {/* Corps : numéros de lignes + canvas */}
       <div className="flex">
-        <div style={{ width: NUM_MARGIN }}>
+        {/* Numéros de lignes */}
+        <div style={{ width: NUM_MARGIN }} aria-hidden="true">
           {Array.from({ length: grid.height }, (_, y) => (
             <div
               key={y}
@@ -90,6 +88,8 @@ export function PixelCanvas({ grid, onPaint, canvasRef: externalRef }: PixelCanv
 
         <canvas
           ref={canvasRef}
+          role="application"
+          aria-label={`Zone de dessin pixel art, grille ${grid.width} colonnes × ${grid.height} lignes`}
           className="cursor-crosshair"
           style={{ imageRendering: "pixelated", display: "block" }}
           onMouseDown={(e) => {

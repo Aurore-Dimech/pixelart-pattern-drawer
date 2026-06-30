@@ -5,6 +5,7 @@ import { usePixelGrid } from "@/hooks/usePixelGrid";
 import { PixelCanvas } from "./PixelCanvas";
 import { ColorPalette } from "./ColorPalette";
 import { ToolBar } from "./ToolBar";
+import { useToast } from "@/components/ui/Toast";
 import { GridData } from "@/types";
 
 interface PixelEditorProps {
@@ -23,7 +24,7 @@ export function PixelEditor({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [title, setTitle] = useState(initialTitle);
   const [saving, setSaving] = useState(false);
-  const [saveMsg, setSaveMsg] = useState("");
+  const { toast } = useToast();
 
   const {
     grid,
@@ -52,25 +53,24 @@ export function PixelEditor({
   const handleSave = async () => {
     if (!onSave) return;
     if (!title.trim()) {
-      setSaveMsg("Donne un titre à ton dessin !");
+      toast("Donne un titre à ton dessin !", "error");
       return;
     }
     setSaving(true);
-    setSaveMsg("");
     try {
       await onSave(title, serialize());
-      setSaveMsg("✅ Sauvegardé !");
+      toast("Dessin sauvegardé !");
     } catch {
-      setSaveMsg("❌ Erreur lors de la sauvegarde");
+      toast("Erreur lors de la sauvegarde", "error");
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className="flex gap-6 p-6">
-      {/* Sidebar gauche */}
-      <div className="flex flex-col gap-6 w-44">
+    <div className="flex min-h-[580px]">
+      {/* Sidebar rose */}
+      <aside className="w-52 bg-rose-50 border-r border-rose-100 flex flex-col gap-5 p-4 overflow-y-auto flex-shrink-0" aria-label="Outils et palette">
         <ToolBar
           activeTool={activeTool}
           onToolChange={setActiveTool}
@@ -85,36 +85,43 @@ export function PixelEditor({
           activeColor={activeColor}
           onColorSelect={setActiveColor}
         />
-      </div>
+      </aside>
 
-      {/* Zone de dessin */}
-      <div className="flex flex-col gap-4">
-        <PixelCanvas
-          grid={grid}
-          onPaint={paintPixel}
-          canvasRef={canvasRef}
-        />
+      {/* Zone principale */}
+      <div className="flex-1 flex flex-col bg-gray-50 min-w-0">
+        {/* Canvas centré */}
+        <div className="flex-1 flex items-center justify-center p-8 overflow-auto">
+          <div className="shadow-xl rounded border border-gray-200 bg-white">
+            <PixelCanvas
+              grid={grid}
+              onPaint={paintPixel}
+              canvasRef={canvasRef}
+            />
+          </div>
+        </div>
 
-        {/* Sauvegarde */}
+        {/* Barre de sauvegarde */}
         {onSave && (
-          <div className="flex gap-2 items-center">
+          <div className="border-t border-gray-200 bg-white px-5 py-3 flex gap-3 items-center">
+            <label htmlFor="drawing-title" className="sr-only">Titre du dessin</label>
             <input
+              id="drawing-title"
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Titre du dessin..."
-              className="border rounded-lg px-3 py-2 text-sm flex-1 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              placeholder="Titre du dessin…"
+              className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 focus:bg-white transition-colors"
             />
             <button
               onClick={handleSave}
               disabled={saving}
-              className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50"
+              aria-busy={saving}
+              className="bg-rose-600 text-white px-5 py-2 rounded-xl text-sm font-semibold hover:bg-rose-700 disabled:opacity-50 transition-colors whitespace-nowrap"
             >
-              {saving ? "Sauvegarde..." : drawingId ? "Mettre à jour" : "Sauvegarder"}
+              {saving ? "Sauvegarde…" : drawingId ? "Mettre à jour" : "Sauvegarder"}
             </button>
           </div>
         )}
-        {saveMsg && <p className="text-sm">{saveMsg}</p>}
       </div>
     </div>
   );

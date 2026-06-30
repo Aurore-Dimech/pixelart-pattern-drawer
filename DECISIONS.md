@@ -180,8 +180,46 @@ Le niveau 3 exige une intégration MCP ou outil externe. L'IA doit apporter une 
 ## [DEC-007] Export PNG : Canvas API native
 
 **Date** : phase v2  
-**Statut** : 🔄 Planifié
+**Statut** : ✅ Validé
 
 **Décision** : `canvas.toDataURL("image/png")` côté client, sans librairie externe
 
 **Justification** : zéro dépendance, natif dans tous les navigateurs modernes.
+
+---
+
+## [DEC-008] Tags : maximum 3 par dessin
+
+**Date** : phase v3  
+**Statut** : ✅ Validé
+
+**Contexte**  
+Les tags permettent de catégoriser les dessins pour le filtrage en galerie. Sans limite, les utilisateurs pourraient saturer l'interface et diluer la sémantique des tags.
+
+**Décision** : Maximum 3 tags par dessin, enforced côté serveur (Zod) et côté client (compteur en temps réel, blocage de la sauvegarde).
+
+**Justification**  
+- 3 tags suffisent pour les principales catégories (style, thème, palette)
+- Limite visible en temps réel dans l'éditeur (`X/3`)
+- Cohérence d'affichage : les cartes galerie affichent toujours tous les tags (pas de troncature)
+
+---
+
+## [DEC-009] Accessibilité WCAG 2.1 AA
+
+**Date** : phase v3  
+**Statut** : ✅ Validé
+
+**Décision** : Respecter le niveau AA de WCAG 2.1 sur toutes les pages.
+
+**Mesures appliquées**  
+- Lien d'évitement `<a class="skip-link" href="#main-content">` (visible uniquement au focus)
+- Anneau `:focus-visible` global en `rose-600` sur tous les éléments focusables
+- `role="dialog"` + `aria-modal` + piège de focus sur `DrawingViewer`
+- `aria-pressed` sur les boutons toggle (outils, favoris, tags)
+- `aria-live="polite"` sur les zones mises à jour dynamiquement (compteur galerie, couleur hex)
+- `role="alert"` sur les messages d'erreur, `role="status"` sur les confirmations
+- `@media (prefers-reduced-motion: reduce)` désactive toutes les animations
+
+**Justification**  
+Accessibilité requise pour les utilisateurs de lecteurs d'écran et de navigation clavier. Critère pédagogique du cours.

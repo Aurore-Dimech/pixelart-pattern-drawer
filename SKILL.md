@@ -15,13 +15,13 @@ Il constitue le **cœur fonctionnel** de l'application. Tout le reste (auth, gal
 
 ### Ce que ce skill couvre
 - Rendu d'une grille pixel sur `<canvas>` HTML
-- Interaction souris (clic, drag pour dessiner)
+- Interaction souris (clic, drag pour dessiner ou effacer)
 - Sélection et gestion de la palette de couleurs
-- Outil gomme
-- Undo / Redo (historique d'états)
-- Zoom de la grille
+- Outil crayon et outil gomme (sélection via `activeTool`)
+- Undo / Redo (historique d'états, limité à 50 entrées)
 - Sérialisation / désérialisation du format `GridData`
-- Export PNG via `canvas.toDataURL()`
+- Export PNG via `canvas.toDataURL()` (dans `PixelEditor`)
+- Suggestion de palette par IA (`ColorPalette` → `POST /api/ai/palette`)
 
 ### Ce que ce skill NE couvre PAS
 - Sauvegarde en base de données (géré par `api/drawings`)
@@ -36,8 +36,8 @@ Le format canonique d'une grille pixel art.
 
 ```typescript
 interface GridData {
-  width: number;   // entre 8 et 64
-  height: number;  // entre 8 et 64
+  width: number;    // entre 8 et 64
+  height: number;   // entre 8 et 64
   pixels: string[]; // tableau 1D, longueur = width * height, couleurs en hex "#RRGGBB"
 }
 
@@ -79,53 +79,8 @@ Ce script valide un fichier JSON de grille pixel art et retourne un code de sort
 ### Usage
 ```bash
 npx ts-node scripts/validate-grid.ts path/to/grid.json
-# ✅ Grid valid: 32x32, 1024 pixels
-# ❌ Grid invalid: pixels length mismatch (expected 1024, got 512)
-```
-
-### Code du script
-```typescript
-// scripts/validate-grid.ts
-import { readFileSync } from "fs";
-import { z } from "zod";
-
-const HEX_COLOR = /^#[0-9A-Fa-f]{6}$/;
-
-const GridDataSchema = z.object({
-  width: z.number().int().min(8).max(64),
-  height: z.number().int().min(8).max(64),
-  pixels: z.array(z.string().regex(HEX_COLOR)),
-}).refine(
-  (data) => data.pixels.length === data.width * data.height,
-  (data) => ({
-    message: `pixels length mismatch (expected ${data.width * data.height}, got ${data.pixels.length})`,
-  })
-).refine(
-  (data) => data.pixels.some((p) => p.toUpperCase() !== "#FFFFFF"),
-  { message: "Drawing is empty (all pixels are white)" }
-);
-
-const filePath = process.argv[2];
-if (!filePath) {
-  console.error("Usage: ts-node scripts/validate-grid.ts <path-to-grid.json>");
-  process.exit(1);
-}
-
-try {
-  const raw = JSON.parse(readFileSync(filePath, "utf-8"));
-  const result = GridDataSchema.safeParse(raw);
-  if (result.success) {
-    console.log(`✅ Grid valid: ${result.data.width}x${result.data.height}, ${result.data.pixels.length} pixels`);
-    process.exit(0);
-  } else {
-    console.error("❌ Grid invalid:");
-    result.error.errors.forEach((e) => console.error(`  - ${e.path.join(".")}: ${e.message}`));
-    process.exit(1);
-  }
-} catch (err) {
-  console.error("❌ Failed to read or parse file:", err);
-  process.exit(1);
-}
+# ✅ Grille valide : 32×32, 1024 pixels
+# ❌ Grille invalide : longueur pixels incorrecte (attendu 1024, reçu 512)
 ```
 
 ---
@@ -134,11 +89,11 @@ try {
 
 | Composant | Fichier | Rôle |
 |---|---|---|
-| `PixelEditor` | `components/editor/PixelEditor.tsx` | Composant racine de l'éditeur |
-| `PixelCanvas` | `components/editor/PixelCanvas.tsx` | Canvas HTML5 avec handlers souris |
-| `ColorPalette` | `components/editor/ColorPalette.tsx` | Sélecteur de couleurs + couleur active |
-| `ToolBar` | `components/editor/ToolBar.tsx` | Crayon, gomme, zoom, undo, redo |
-| `GridSizeSelector` | `components/editor/GridSizeSelector.tsx` | Sélection 8×8 jusqu'à 64×64 |
+| `PixelEditor` | `components/editor/PixelEditor.tsx` | Composant racine : assemble la sidebar et le canvas, gère la sauvegarde |
+| `PixelCanvas` | `components/editor/PixelCanvas.tsx` | Canvas HTML5 avec handlers souris, numéros de lignes/colonnes en HTML |
+| `ColorPalette` | `components/editor/ColorPalette.tsx` | Palette de couleurs, sélecteur libre, suggestion IA |
+| `ToolBar` | `components/editor/ToolBar.tsx` | Crayon, gomme, annuler, rétablir, effacer tout, export PNG |
+| `PixelEditorEditClient` | `components/editor/PixelEditorEditClient.tsx` | Wrapper client pour l'édition d'un dessin existant (barre de tags) |
 
 ---
 
@@ -149,24 +104,28 @@ try {
 interface UsePixelGridReturn {
   grid: GridData;
   activeColor: string;
+  activeTool: "pen" | "eraser";
   setActiveColor: (color: string) => void;
-  paintPixel: (x: number, y: number) => void;
-  erasePixel: (x: number, y: number) => void;
+  setActiveTool: (tool: "pen" | "eraser") => void;
+  paintPixel: (x: number, y: number) => void;  // dessine ou efface selon activeTool
   undo: () => void;
   redo: () => void;
   canUndo: boolean;
   canRedo: boolean;
-  reset: () => void;
-  exportPNG: () => string; // retourne data URL
-  serialize: () => string; // retourne JSON string
+  reset: () => void;          // remet tous les pixels à blanc
+  serialize: () => string;    // retourne JSON string
+  loadFromData: (data: GridData) => void; // charge un dessin existant (reset historique)
 }
 ```
+
+> L'historique undo/redo est limité à **50 entrées** (`MAX_HISTORY = 50`). Au-delà, les états les plus anciens sont supprimés.
 
 ---
 
 ## Palette par défaut
 
 ```typescript
+// src/lib/constants.ts
 export const DEFAULT_PALETTE = [
   "#000000", // Noir
   "#FFFFFF", // Blanc
@@ -191,16 +150,16 @@ export const DEFAULT_PALETTE = [
 
 ## Intégration IA : suggestion de palette
 
-Quand l'utilisateur clique sur **"Suggérer une palette"** et entre un thème :
+Quand l'utilisateur saisit un thème et clique sur **"Générer"** :
 
 1. Appel `POST /api/ai/palette` avec `{ theme: string }`
-2. Le serveur appelle l'API Anthropic avec le prompt :
+2. Le serveur appelle l'API Anthropic (`claude-haiku-4-5-20251001`) avec le prompt :
    ```
    Génère une palette de 8 couleurs harmonieuses pour un pixel art sur le thème "{theme}".
    Réponds UNIQUEMENT avec un JSON array de 8 codes hex, exemple: ["#FF0000", "#00FF00", ...]
    ```
 3. La réponse remplace les 8 premières couleurs de la palette active
-4. En cas d'erreur API → fallback sur `DEFAULT_PALETTE`
+4. En cas d'erreur API → fallback sur `DEFAULT_PALETTE`, toast informatif
 
 ---
 
@@ -212,4 +171,3 @@ Quand l'utilisateur clique sur **"Suggérer une palette"** et entre un thème :
 | `paintPixel` met à jour le bon index | `__tests__/hooks/usePixelGrid.test.ts` | Unitaire |
 | Undo/Redo retourne à l'état précédent | `__tests__/hooks/usePixelGrid.test.ts` | Unitaire |
 | Sérialisation → désérialisation | `__tests__/hooks/usePixelGrid.test.ts` | Unitaire |
-| Rendu PixelCanvas | `__tests__/components/PixelCanvas.test.tsx` | Composant |

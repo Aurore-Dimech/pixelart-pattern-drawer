@@ -43,18 +43,18 @@ Inventaire honnête des limitations connues, raccourcis et travaux différés da
 
 ---
 
-## TD-04 — Pas de pagination sur le dashboard
+## TD-04 — Pas de pagination sur le dashboard ni sur les favoris
 
-**Localisation** : `src/app/dashboard/page.tsx`  
+**Localisation** : `src/app/dashboard/page.tsx`, `src/app/favorites/FavoritesClient.tsx`  
 **Sévérité** : Faible
 
-**Problème** : Tous les dessins de l'utilisateur sont retournés en une seule requête. Avec un grand nombre de dessins, cela peut devenir un problème de performance et de mémoire.
+**Problème** : Tous les dessins de l'utilisateur (dashboard) et tous ses favoris (page `/favorites`) sont retournés en une seule requête. Avec un grand nombre d'entrées, cela peut devenir un problème de performance et de mémoire.
 
-> **Note** : La galerie publique dispose bien d'une pagination côté serveur (`GALLERY_PAGE_SIZE`, paramètre `?page=`). Cette dette ne concerne que le dashboard personnel.
+> **Note** : La galerie publique dispose bien d'une pagination côté serveur (`GALLERY_PAGE_SIZE`, paramètre `?page=`). Cette dette ne concerne que le dashboard personnel et la page favoris.
 
 **Pourquoi différé** : Pour une démo avec peu de dessins, la limite n'est pas observable.
 
-**Corriger quand** : Si un utilisateur accumule de nombreux dessins. Ajouter `take`/`skip` à la requête dashboard et des contrôles de pagination dans `DashboardClient`.
+**Corriger quand** : Si un utilisateur accumule de nombreux dessins ou favoris. Ajouter `take`/`skip` aux requêtes et des contrôles de pagination dans `DashboardClient` et `FavoritesClient`.
 
 ---
 
@@ -68,6 +68,41 @@ Inventaire honnête des limitations connues, raccourcis et travaux différés da
 **Pourquoi différé** : Les routes API Next.js App Router sont same-origin par défaut en production sur des hébergeurs standards, et NextAuth v5 inclut une mitigation CSRF pour ses propres endpoints. Cependant, les routes personnalisées n'ont pas de protection explicite.
 
 **Corriger quand** : Avant tout déploiement public. Ajouter une vérification de token CSRF (ex: `next-csrf` ou pattern double-submit cookie) sur toutes les routes mutantes.
+
+---
+
+## TD-07 — ✅ Résolu — `favorites/route.ts` n'utilisait pas les helpers `api-guard`
+
+**Localisation** : `src/app/api/favorites/route.ts`  
+**Résolu dans** : commit après `ef0cd02`
+
+**Problème** : `GET` et `POST` appelaient `auth()` directement et réimplémentaient manuellement le contrôle d'authentification et le parsing du body JSON, alors que `requireSession()` et `parseJsonBody()` avaient été extraits dans `src/lib/api-guard.ts` pour centraliser ce comportement.
+
+**Correction appliquée** : Remplacement de `import { auth }` + bloc `try/catch` JSON par `requireSession()` et `parseJsonBody()`. Toutes les routes mutantes utilisent désormais les mêmes helpers.
+
+---
+
+## TD-08 — `window.confirm()` utilisé pour la confirmation de suppression
+
+**Localisation** : `src/hooks/useDrawingActions.ts:69`  
+**Sévérité** : Faible
+
+**Problème** : La suppression d'un dessin déclenche un `window.confirm()` natif. Ce dialogue bloque le thread JS, ne peut pas être stylisé, et est difficile à moquer proprement en tests (il faut patcher `global.confirm`). Il est également incohérent avec le pattern toast utilisé partout ailleurs dans l'app pour le feedback utilisateur.
+
+**Pourquoi différé** : Pour une app de démo, l'expérience est fonctionnelle. Remplacer par une modale de confirmation React nécessite un composant dédié et une gestion d'état supplémentaire.
+
+**Corriger quand** : Si la qualité UX des interactions destructives devient un critère. Implémenter un composant `ConfirmDialog` (ou réutiliser une modale existante) et le déclencher depuis `useDrawingActions`.
+
+---
+
+## TD-09 — ✅ Résolu — `useDrawingActions` n'avait aucun test
+
+**Localisation** : `__tests__/hooks/useDrawingActions.test.ts`  
+**Résolu dans** : commit après `ef0cd02`
+
+**Problème** : Le hook `useDrawingActions` avait été extrait dans le refactor `1cbae78` sans aucune couverture de tests, en violation de la Règle 3 du projet.
+
+**Correction appliquée** : Création de `__tests__/hooks/useDrawingActions.test.ts` avec 11 tests couvrant `togglePublish` (succès publish/dépublish, erreur HTTP, réponse malformée, URL et body du fetch, `pending`) et `deleteDrawing` (annulation via confirm, succès, erreur HTTP, URL DELETE, `pending`).
 
 ---
 

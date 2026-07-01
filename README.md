@@ -7,11 +7,13 @@ Application web full-stack pour créer, sauvegarder, tagger et partager des dess
 - **Éditeur pixel art** — grille de 8×8 à 64×64 pixels, outil crayon/gomme, palette de couleurs, annuler/rétablir, numéros de lignes et colonnes
 - **Suggestion de palette par IA** — génère une palette harmonieuse de 8 couleurs à partir d'un thème via l'API Anthropic (avec fallback gracieux)
 - **Comptes utilisateurs** — inscription avec pseudo public unique, l'email reste privé
-- **Galerie** — parcourir tous les dessins publiés avec recherche (par titre) et filtrage par tag côté serveur, paginée
-- **Tags** — jusqu'à 3 tags par dessin, stockés dans une table relationnelle dédiée
+- **Galerie** — parcourir tous les dessins publiés avec recherche par titre **ou par tag** côté serveur, paginée
+- **Tags** — jusqu'à 3 tags par dessin, saisie via `TagInput`, stockés dans une table relationnelle dédiée
 - **Favoris** — sauvegarder et retirer des favoris, consulter sa liste de favoris
 - **Dashboard** — gérer ses dessins : éditer, publier/dépublier, supprimer
 - **Export PNG** — télécharger son dessin en haute résolution via la Canvas API native
+- **Design responsive** — navigation hamburger sur mobile, layout éditeur empilé en colonne sur petits écrans
+- **Toasts auto-dismiss** — notifications disparaissent automatiquement après affichage
 - **Accessibilité WCAG 2.1 AA** — lien d'évitement, focus visible, piège de focus sur les modales, `aria-*` complets, respect de `prefers-reduced-motion`
 
 ## Stack technique
@@ -70,15 +72,24 @@ npm run dev
 
 Ouvrir [http://localhost:3000](http://localhost:3000).
 
+### Via Docker
+
+```bash
+docker compose up --build
+```
+
+L'app est accessible sur [http://localhost:3000](http://localhost:3000). La migration Prisma s'exécute automatiquement au démarrage via `docker-entrypoint.sh`.
+
 ## Scripts
 
 ```bash
-npm run dev            # Serveur de développement
-npm run build          # Build de production
-npm run lint           # ESLint (0 erreur attendue)
-npm run test           # Tests Jest
-npx ts-node scripts/validate-grid.ts <fichier.json>  # Validateur de grille
-npx prisma studio      # Interface base de données
+npm run dev                                          # Serveur de développement
+npm run build                                        # Build de production
+npm run lint                                         # ESLint (0 erreur attendue)
+npm run test                                         # Tests Jest
+npx ts-node scripts/validate-grid.ts <fichier.json> # Validateur de grille
+npx prisma studio                                    # Interface base de données
+docker compose up --build                            # Lancer via Docker
 ```
 
 ## Structure du projet
@@ -93,13 +104,15 @@ src/
 │   ├── dashboard/     # Mes dessins
 │   └── favorites/     # Mes favoris
 ├── components/
-│   ├── editor/        # PixelCanvas, ColorPalette, ToolBar, PixelEditor
+│   ├── editor/        # PixelCanvas, ColorPalette, ToolBar, PixelEditor, TagInput
 │   ├── gallery/       # DrawingMiniature, DrawingViewer
-│   └── ui/            # NavBar, Toast
-├── hooks/             # usePixelGrid (état grille + undo/redo)
-├── lib/               # Client Prisma, config NextAuth, validateurs Zod
+│   └── ui/            # NavBar (responsive), Toast (auto-dismiss)
+├── hooks/             # usePixelGrid, useDrawingActions, usePalette
+├── lib/               # prisma, auth, api-guard, pixel-render, tags, validateurs Zod
 └── types/             # Types TypeScript partagés
 ```
+
+Fichiers Docker à la racine : `Dockerfile`, `docker-compose.yml`, `docker-entrypoint.sh`.
 
 ## Modèle de données
 

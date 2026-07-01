@@ -61,7 +61,11 @@ describe("GET /api/gallery", () => {
     expect(res.status).toBe(200);
     expect(mockFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({ title: { contains: "ocean" } }),
+        where: expect.objectContaining({
+          OR: expect.arrayContaining([
+            { title: { contains: "ocean" } },
+          ]),
+        }),
       })
     );
   });

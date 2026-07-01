@@ -3,6 +3,8 @@
  */
 import { POST } from "@/app/api/register/route";
 
+jest.mock("@/lib/auth", () => ({ auth: jest.fn() }));
+
 jest.mock("@/lib/prisma", () => ({
   prisma: {
     user: {

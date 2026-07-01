@@ -8,7 +8,7 @@ function TriggerButton({ message = "Test", type = "success" }: { message?: strin
 
 describe("ToastProvider", () => {
   beforeEach(() => { jest.useFakeTimers(); });
-  afterEach(() => { jest.runAllTimers(); jest.useRealTimers(); });
+  afterEach(() => { act(() => { jest.runAllTimers(); }); jest.useRealTimers(); });
 
   it("renders children without any toast initially", () => {
     render(
@@ -60,7 +60,7 @@ describe("ToastProvider", () => {
       </ToastProvider>
     );
     const btn = screen.getByRole("button");
-    act(() => { btn.click(); btn.click(); });
+    act(() => { btn.click(); jest.advanceTimersByTime(1); btn.click(); });
     // Two status toasts must exist with different text or at least both present
     const toasts = screen.getAllByRole("status");
     expect(toasts).toHaveLength(2);

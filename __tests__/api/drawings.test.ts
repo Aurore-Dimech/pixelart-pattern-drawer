@@ -4,14 +4,17 @@
 import { GET, POST } from "@/app/api/drawings/route";
 
 jest.mock("@/lib/auth", () => ({ auth: jest.fn() }));
-jest.mock("@/lib/prisma", () => ({
-  prisma: {
-    drawing: {
-      findMany: jest.fn(),
-      create: jest.fn(),
+jest.mock("@/lib/prisma", () => {
+  const drawing = { findMany: jest.fn(), create: jest.fn() };
+  return {
+    prisma: {
+      drawing,
+      $transaction: jest.fn().mockImplementation((cb: (tx: { drawing: typeof drawing }) => unknown) =>
+        cb({ drawing })
+      ),
     },
-  },
-}));
+  };
+});
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";

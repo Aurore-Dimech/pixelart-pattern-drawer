@@ -2,6 +2,7 @@
 
 import { useRef, useEffect } from "react";
 import { GridData } from "@/types";
+import { renderGridToCanvas } from "@/lib/pixel-render";
 
 const CELL_SIZE = 28;
 const GRID_COLOR = "#D1D5DB";
@@ -21,23 +22,8 @@ export function PixelCanvas({ grid, onPaint, canvasRef: externalRef }: PixelCanv
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
 
-    canvas.width = grid.width * CELL_SIZE;
-    canvas.height = grid.height * CELL_SIZE;
-
-    for (let y = 0; y < grid.height; y++) {
-      for (let x = 0; x < grid.width; x++) {
-        const px = x * CELL_SIZE;
-        const py = y * CELL_SIZE;
-        ctx.fillStyle = grid.pixels[y * grid.width + x];
-        ctx.fillRect(px, py, CELL_SIZE, CELL_SIZE);
-        ctx.strokeStyle = GRID_COLOR;
-        ctx.lineWidth = 1;
-        ctx.strokeRect(px + 0.5, py + 0.5, CELL_SIZE - 1, CELL_SIZE - 1);
-      }
-    }
+    renderGridToCanvas(canvas, grid, CELL_SIZE, { gridColor: GRID_COLOR, showGridLines: true });
   }, [grid, canvasRef]);
 
   const getPixelCoords = (e: React.MouseEvent<HTMLCanvasElement>) => {

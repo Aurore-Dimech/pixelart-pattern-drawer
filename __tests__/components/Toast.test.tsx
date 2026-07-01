@@ -1,8 +1,7 @@
-import React from "react";
 import { render, screen, act } from "@testing-library/react";
 import { ToastProvider, useToast } from "@/components/ui/Toast";
 
-function TriggerButton({ message = "Test", type = "success" as const }) {
+function TriggerButton({ message = "Test", type = "success" }: { message?: string; type?: "success" | "error" }) {
   const { toast } = useToast();
   return <button onClick={() => toast(message, type)}>Trigger</button>;
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useMemo } from "react";
 import { GridData } from "@/types";
+import { renderGridToCanvas, computeCellSize } from "@/lib/pixel-render";
 
 interface Tag { id: string; name: string; slug: string }
 
@@ -36,9 +37,7 @@ export function DrawingViewer({ drawing, onClose, onToggleFavorite, isLoggedIn }
     try { return JSON.parse(drawing.gridData); } catch { return null; }
   }, [drawing]);
 
-  const cellSize = grid
-    ? Math.max(2, Math.floor(MAX_PIXELS / Math.max(grid.width, grid.height)))
-    : 0;
+  const cellSize = grid ? computeCellSize(grid, MAX_PIXELS, 2) : 0;
 
   const numStep = cellSize >= 12 ? 1 : cellSize >= 7 ? 2 : 5;
 
@@ -47,32 +46,17 @@ export function DrawingViewer({ drawing, onClose, onToggleFavorite, isLoggedIn }
     if (!grid) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
 
-    canvas.width = grid.width * cellSize;
-    canvas.height = grid.height * cellSize;
-
-    for (let y = 0; y < grid.height; y++) {
-      for (let x = 0; x < grid.width; x++) {
-        const px = x * cellSize;
-        const py = y * cellSize;
-        ctx.fillStyle = grid.pixels[y * grid.width + x];
-        ctx.fillRect(px, py, cellSize, cellSize);
-        ctx.strokeStyle = GRID_COLOR;
-        ctx.lineWidth = 0.5;
-        ctx.strokeRect(px + 0.5, py + 0.5, cellSize - 1, cellSize - 1);
-      }
-    }
+    renderGridToCanvas(canvas, grid, cellSize, { gridColor: GRID_COLOR, showGridLines: true });
   }, [grid, cellSize]);
+
+  const drawingId = drawing?.id;
 
   // Auto-focus close button when a new drawing opens
   useEffect(() => {
-    if (!drawing) return;
+    if (!drawingId) return;
     closeButtonRef.current?.focus();
-  // WHY: depends on drawing.id only — fav count updates should not steal focus
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [drawing?.id]);
+  }, [drawingId]);
 
   // Keyboard: Escape to close + focus trap
   useEffect(() => {
@@ -94,11 +78,10 @@ export function DrawingViewer({ drawing, onClose, onToggleFavorite, isLoggedIn }
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
 
-      if (e.shiftKey) {
-        if (document.activeElement === first) { e.preventDefault(); last.focus(); }
-      } else {
-        if (document.activeElement === last) { e.preventDefault(); first.focus(); }
-      }
+      const atFirst = document.activeElement === first;
+      const atLast = document.activeElement === last;
+      if (e.shiftKey && atFirst) { e.preventDefault(); last.focus(); return; }
+      if (!e.shiftKey && atLast) { e.preventDefault(); first.focus(); }
     };
 
     window.addEventListener("keydown", handleKeyDown);

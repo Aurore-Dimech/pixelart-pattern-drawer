@@ -1,0 +1,8 @@
+title = "gitleaks config"
+
+[allowlist]
+description = "Exclure les fichiers gitignorés contenant des secrets légitimes"
+paths = [
+    '''(^|/)\.env(\b|$)''',
+    '''(^|/)\.next/''',
+]

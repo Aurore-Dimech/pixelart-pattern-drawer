@@ -23,6 +23,19 @@ function parsePalette(text: string): string[] | null {
   }
 }
 
+async function fetchAnthropicPalette(theme: string): Promise<string[] | null> {
+  const { default: Anthropic } = await import("@anthropic-ai/sdk");
+  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
+  const prompt = `Generate a harmonious 8-color palette for pixel art on the theme "${theme}". Reply ONLY with a valid JSON array of exactly 8 hex color codes. Example: ["#FF0000","#00FF00","#0000FF","#FFFF00","#FF00FF","#00FFFF","#FF8800","#8800FF"]`;
+  const message = await client.messages.create({
+    model: "claude-haiku-4-5",
+    max_tokens: 128,
+    messages: [{ role: "user", content: prompt }],
+  });
+  const text = message.content[0].type === "text" ? message.content[0].text : "";
+  return parsePalette(text);
+}
+
 export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user?.id) {
@@ -44,29 +57,12 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { default: Anthropic } = await import("@anthropic-ai/sdk");
-    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
-    const message = await client.messages.create({
-      model: "claude-haiku-4-5",
-      max_tokens: 128,
-      messages: [
-        {
-          role: "user",
-          content: `Generate a harmonious 8-color palette for pixel art on the theme "${parsed.data.theme}". Reply ONLY with a valid JSON array of exactly 8 hex color codes. Example: ["#FF0000","#00FF00","#0000FF","#FFFF00","#FF00FF","#00FFFF","#FF8800","#8800FF"]`,
-        },
-      ],
-    });
-
-    const text = message.content[0].type === "text" ? message.content[0].text : "";
-    const colors = parsePalette(text);
-
-    if (colors) {
-      return NextResponse.json({ data: colors });
-    }
+    const colors = await fetchAnthropicPalette(parsed.data.theme);
+    if (colors) return NextResponse.json({ data: colors });
   } catch (err) {
     // WHY: fallback intentionnel si l'API est indisponible
     console.error("[ai/palette]", err instanceof Error ? err.message : err);
+    return NextResponse.json({ data: DEFAULT_PALETTE, fallback: true });
   }
 
   return NextResponse.json({ data: DEFAULT_PALETTE, fallback: true });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type Dispatch, type SetStateAction } from "react";
 import Link from "next/link";
 import { Heart } from "lucide-react";
 import { DrawingMiniature } from "@/components/gallery/DrawingMiniature";
@@ -18,24 +18,36 @@ interface Drawing {
   favoriteCount: number;
 }
 
+type ToastFn = (message: string, type?: "success" | "error" | "info") => void;
+type SetDrawings = Dispatch<SetStateAction<Drawing[]>>;
+type SetRemoving = Dispatch<SetStateAction<Record<string, boolean>>>;
+type SetViewed = Dispatch<SetStateAction<Drawing | null>>;
+
+async function doRemoveFavorite(
+  drawingId: string,
+  viewedId: string | null,
+  setDrawings: SetDrawings,
+  setRemoving: SetRemoving,
+  setViewed: SetViewed,
+  toast: ToastFn
+): Promise<void> {
+  setRemoving((r) => ({ ...r, [drawingId]: true }));
+  const res = await fetch(`/api/favorites/${drawingId}`, { method: "DELETE" });
+  setRemoving((r) => ({ ...r, [drawingId]: false }));
+  if (!res.ok) { toast("Erreur lors de la suppression", "error"); return; }
+  setDrawings((prev) => prev.filter((d) => d.id !== drawingId));
+  if (viewedId === drawingId) setViewed(null);
+  toast("Retiré des favoris");
+}
+
 export function FavoritesClient({ drawings: initial }: { drawings: Drawing[] }) {
   const [drawings, setDrawings] = useState(initial);
   const [removing, setRemoving] = useState<Record<string, boolean>>({});
   const [viewed, setViewed] = useState<Drawing | null>(null);
   const { toast } = useToast();
 
-  const removeFavorite = async (drawingId: string) => {
-    setRemoving((r) => ({ ...r, [drawingId]: true }));
-    const res = await fetch(`/api/favorites/${drawingId}`, { method: "DELETE" });
-    if (res.ok) {
-      setDrawings((prev) => prev.filter((d) => d.id !== drawingId));
-      if (viewed?.id === drawingId) setViewed(null);
-      toast("Retiré des favoris");
-    } else {
-      toast("Erreur lors de la suppression", "error");
-    }
-    setRemoving((r) => ({ ...r, [drawingId]: false }));
-  };
+  const removeFavorite = (drawingId: string): Promise<void> =>
+    doRemoveFavorite(drawingId, viewed?.id ?? null, setDrawings, setRemoving, setViewed, toast);
 
   if (drawings.length === 0) {
     return (
@@ -58,7 +70,7 @@ export function FavoritesClient({ drawings: initial }: { drawings: Drawing[] }) 
       <DrawingViewer
         drawing={viewed ? { ...viewed, isFavorited: true } : null}
         onClose={() => setViewed(null)}
-        onToggleFavorite={(id) => removeFavorite(id)}
+        onToggleFavorite={removeFavorite}
         isLoggedIn={true}
       />
 

@@ -1,0 +1,13 @@
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - pixelart-data:/data
+    env_file:
+      - .env.docker
+    restart: unless-stopped
+
+volumes:
+  pixelart-data:

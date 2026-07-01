@@ -25,7 +25,6 @@ try {
   const raw = JSON.parse(readFileSync(filePath, "utf-8"));
   const result = GridDataSchema.safeParse(raw);
   if (result.success) {
-    console.log(`✅ Grid valid: ${result.data.width}x${result.data.height}, ${result.data.pixels.length} pixels`);
     process.exit(0);
   } else {
     console.error("❌ Grid invalid:");
@@ -34,5 +33,5 @@ try {
   }
 } catch (err) {
   console.error("❌ Failed to read or parse file:", err);
-  process.exit(1);
+  throw err;
 }

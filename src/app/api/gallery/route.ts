@@ -12,34 +12,30 @@ export async function GET(req: Request) {
   const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
   const pageSize = GALLERY_PAGE_SIZE;
 
-  const drawings = await prisma.drawing.findMany({
-    where: {
-      isPublished: true,
-      ...(search ? { title: { contains: search } } : {}),
-      ...(tag ? { tags: { some: { tag: { slug: tag } } } } : {}),
-    },
-    include: {
-      author: { select: { name: true } },
-      tags: { include: { tag: true } },
-      favorites: session?.user?.id
-        ? { where: { userId: session.user.id }, select: { id: true } }
-        : false,
-      _count: { select: { favorites: true } },
-    },
-    orderBy: { updatedAt: "desc" },
-    skip: (page - 1) * pageSize,
-    take: pageSize,
-  });
+  const where = {
+    isPublished: true,
+    ...(search ? { title: { contains: search } } : {}),
+    ...(tag ? { tags: { some: { tag: { slug: tag } } } } : {}),
+  };
 
-  const total = await prisma.drawing.count({
-    where: {
-      isPublished: true,
-      ...(search ? { title: { contains: search } } : {}),
-      ...(tag ? { tags: { some: { tag: { slug: tag } } } } : {}),
-    },
-  });
-
-  const tags = await prisma.tag.findMany({ orderBy: { name: "asc" } });
+  const [drawings, total, tags] = await Promise.all([
+    prisma.drawing.findMany({
+      where,
+      include: {
+        author: { select: { name: true } },
+        tags: { include: { tag: true } },
+        favorites: session?.user?.id
+          ? { where: { userId: session.user.id }, select: { id: true } }
+          : false,
+        _count: { select: { favorites: true } },
+      },
+      orderBy: { updatedAt: "desc" },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.drawing.count({ where }),
+    prisma.tag.findMany({ orderBy: { name: "asc" } }),
+  ]);
 
   const data = drawings.map((d) => ({
     ...d,

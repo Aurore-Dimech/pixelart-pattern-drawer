@@ -36,7 +36,6 @@ export function PixelEditorEditClient({ drawingId, initialData, initialTitle, in
       body: JSON.stringify({ title, gridData, tags: parsedTags }),
     });
     if (!res.ok) throw new Error("Erreur mise à jour");
-    toast("Dessin mis à jour !");
   };
 
   return (

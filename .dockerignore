@@ -1,0 +1,10 @@
+node_modules
+.next
+.git
+.env
+.env.*
+prisma/*.db
+prisma/prisma/
+coverage
+*.log
+.DS_Store

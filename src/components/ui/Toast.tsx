@@ -22,15 +22,12 @@ const COLORS: Record<ToastType, string> = {
   info:    "bg-rose-500",
 };
 
-let nextId = 0;
-
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
   const toast = useCallback((message: string, type: ToastType = "success") => {
-    const id = ++nextId;
+    const id = Date.now();
     setToasts((prev) => [...prev, { id, message, type }]);
-    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 3000);
   }, []);
 
   return (

@@ -59,7 +59,7 @@ export function PixelEditor({
     setSaving(true);
     try {
       await onSave(title, serialize());
-      toast("Dessin sauvegardé !");
+      toast(drawingId ? "Dessin mis à jour !" : "Dessin sauvegardé !");
     } catch {
       toast("Erreur lors de la sauvegarde", "error");
     } finally {

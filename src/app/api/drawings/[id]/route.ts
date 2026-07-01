@@ -1,7 +1,18 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { UpdateDrawingSchema } from "@/lib/validators/drawing";
+import { requireOwnership, parseJsonBody } from "@/lib/api-guard";
+
+async function syncTags(tx: Prisma.TransactionClient, drawingId: string, tags: string[]): Promise<void> {
+  await tx.drawingTag.deleteMany({ where: { drawingId } });
+  if (tags.length === 0) return;
+  const tagRecords = await Promise.all(
+    tags.map((slug) => tx.tag.upsert({ where: { slug }, update: {}, create: { slug, name: slug } }))
+  );
+  await tx.drawingTag.createMany({ data: tagRecords.map((t) => ({ drawingId, tagId: t.id })) });
+}
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -26,17 +37,11 @@ export async function GET(_req: Request, { params }: Params) {
 
 export async function PUT(req: Request, { params }: Params) {
   const { id } = await params;
-  const session = await auth();
-  if (!session?.user?.id) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+  const { error: ownerError } = await requireOwnership(id);
+  if (ownerError) return ownerError;
 
-  const drawing = await prisma.drawing.findUnique({ where: { id } });
-  if (!drawing) return NextResponse.json({ error: "Introuvable" }, { status: 404 });
-  if (drawing.authorId !== session.user.id) return NextResponse.json({ error: "Accès refusé" }, { status: 403 });
-
-  let body: unknown;
-  try { body = await req.json(); } catch {
-    return NextResponse.json({ error: "Corps de requête invalide" }, { status: 400 });
-  }
+  const { body, error: bodyError } = await parseJsonBody(req);
+  if (bodyError) return bodyError;
   const parsed = UpdateDrawingSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
@@ -45,25 +50,7 @@ export async function PUT(req: Request, { params }: Params) {
   const { tags, ...rest } = parsed.data;
 
   const updated = await prisma.$transaction(async (tx) => {
-    if (tags !== undefined) {
-      await tx.drawingTag.deleteMany({ where: { drawingId: id } });
-
-      if (tags.length > 0) {
-        const tagRecords = await Promise.all(
-          tags.map((slug) =>
-            tx.tag.upsert({
-              where: { slug },
-              update: {},
-              create: { slug, name: slug },
-            })
-          )
-        );
-        await tx.drawingTag.createMany({
-          data: tagRecords.map((t) => ({ drawingId: id, tagId: t.id })),
-        });
-      }
-    }
-
+    if (tags !== undefined) await syncTags(tx, id, tags);
     return tx.drawing.update({
       where: { id },
       data: rest,
@@ -76,12 +63,8 @@ export async function PUT(req: Request, { params }: Params) {
 
 export async function DELETE(_req: Request, { params }: Params) {
   const { id } = await params;
-  const session = await auth();
-  if (!session?.user?.id) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
-
-  const drawing = await prisma.drawing.findUnique({ where: { id } });
-  if (!drawing) return NextResponse.json({ error: "Introuvable" }, { status: 404 });
-  if (drawing.authorId !== session.user.id) return NextResponse.json({ error: "Accès refusé" }, { status: 403 });
+  const { error: ownerError } = await requireOwnership(id);
+  if (ownerError) return ownerError;
 
   await prisma.drawing.delete({ where: { id } });
   return NextResponse.json({ data: { deleted: true } });

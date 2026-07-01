@@ -79,9 +79,9 @@ export function PixelEditor({
   };
 
   return (
-    <div className="flex min-h-[580px]">
+    <div className="flex flex-col lg:flex-row min-h-[580px]">
       {/* Sidebar rose */}
-      <aside className="w-52 bg-rose-50 border-r border-rose-100 flex flex-col gap-5 p-4 overflow-y-auto flex-shrink-0" aria-label="Outils et palette">
+      <aside className="w-full lg:w-52 bg-rose-50 border-b lg:border-b-0 lg:border-r border-rose-100 flex flex-col gap-5 p-4 overflow-y-auto flex-shrink-0" aria-label="Outils et palette">
         <ToolBar
           activeTool={activeTool}
           onToolChange={setActiveTool}
@@ -101,7 +101,7 @@ export function PixelEditor({
       {/* Zone principale */}
       <div className="flex-1 flex flex-col bg-gray-50 min-w-0">
         {/* Canvas centré */}
-        <div className="flex-1 flex items-center justify-center p-8 overflow-auto">
+        <div className="flex-1 flex items-center justify-center p-4 lg:p-8 overflow-auto">
           <div className="shadow-xl rounded border border-gray-200 bg-white">
             <PixelCanvas
               grid={grid}

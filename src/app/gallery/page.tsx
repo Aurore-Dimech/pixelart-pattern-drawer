@@ -59,7 +59,7 @@ export default async function GalleryPage({ searchParams }: Props) {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">Galerie</h1>
+      <h1 className="text-xl sm:text-2xl font-bold text-gray-800 mb-6">Galerie</h1>
       {/* WHY: la key force un remount de GalleryClient à chaque changement de page/filtre,
           ce qui réinitialise les états locaux favorites/favCounts depuis les nouvelles props */}
       <GalleryClient

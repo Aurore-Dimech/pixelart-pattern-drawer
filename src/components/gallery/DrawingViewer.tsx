@@ -108,7 +108,7 @@ export function DrawingViewer({ drawing, onClose, onToggleFavorite, isLoggedIn }
         role="dialog"
         aria-modal="true"
         aria-labelledby="viewer-title"
-        className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full flex flex-col overflow-hidden"
+        className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full flex flex-col overflow-hidden max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

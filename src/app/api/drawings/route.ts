@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { CreateDrawingSchema } from "@/lib/validators/drawing";
 import { requireSession, parseJsonBody } from "@/lib/api-guard";
+import { syncTags } from "@/lib/tags";
 
 export async function GET() {
   const { userId, error: authError } = await requireSession();
@@ -27,12 +28,20 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   }
 
-  const drawing = await prisma.drawing.create({
-    data: {
-      title: parsed.data.title,
-      gridData: parsed.data.gridData,
-      authorId: userId,
-    },
+  const { tags, ...drawingData } = parsed.data;
+
+  const drawing = await prisma.$transaction(async (tx) => {
+    const d = await tx.drawing.create({
+      data: {
+        title: drawingData.title,
+        gridData: drawingData.gridData,
+        authorId: userId,
+      },
+    });
+    if (tags && tags.length > 0) {
+      await syncTags(tx, d.id, tags);
+    }
+    return d;
   });
 
   return NextResponse.json({ data: drawing }, { status: 201 });

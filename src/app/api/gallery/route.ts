@@ -14,7 +14,14 @@ export async function GET(req: Request) {
 
   const where = {
     isPublished: true,
-    ...(search ? { title: { contains: search } } : {}),
+    ...(search
+      ? {
+          OR: [
+            { title: { contains: search } },
+            { tags: { some: { tag: { name: { contains: search } } } } },
+          ],
+        }
+      : {}),
     ...(tag ? { tags: { some: { tag: { slug: tag } } } } : {}),
   };
 

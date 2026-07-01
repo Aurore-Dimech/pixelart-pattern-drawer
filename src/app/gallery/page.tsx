@@ -17,7 +17,14 @@ export default async function GalleryPage({ searchParams }: Props) {
 
   const where = {
     isPublished: true,
-    ...(search ? { title: { contains: search } } : {}),
+    ...(search
+      ? {
+          OR: [
+            { title: { contains: search } },
+            { tags: { some: { tag: { name: { contains: search } } } } },
+          ],
+        }
+      : {}),
     ...(tag ? { tags: { some: { tag: { slug: tag } } } } : {}),
   };
 

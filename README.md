@@ -80,6 +80,18 @@ docker compose up --build
 
 L'app est accessible sur [http://localhost:3000](http://localhost:3000). La migration Prisma s'exécute automatiquement au démarrage via `docker-entrypoint.sh`.
 
+### Hooks Git (pre-commit)
+
+Un hook `pre-commit` versionné dans `.githooks/` exécute `npm run lint && npm run test` avant chaque commit.
+
+**Utilisateurs npm** — le hook est activé automatiquement après `npm install` (script `prepare`).
+
+**Utilisateurs Docker** — lancer une fois sur la machine hôte après le clone :
+
+```bash
+bash scripts/setup.sh
+```
+
 ## Scripts
 
 ```bash

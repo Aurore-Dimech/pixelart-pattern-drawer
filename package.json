@@ -8,7 +8,11 @@
     "start": "next start",
     "lint": "eslint src/",
     "test": "jest",
-    "validate-grid": "ts-node scripts/validate-grid.ts"
+    "validate-grid": "ts-node scripts/validate-grid.ts",
+    "db:seed": "ts-node --project prisma/tsconfig.seed.json prisma/seed.ts"
+  },
+  "prisma": {
+    "seed": "npm run db:seed"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.106.0",

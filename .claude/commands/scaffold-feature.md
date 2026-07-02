@@ -1,11 +1,3 @@
----
-name: scaffold-feature
-description: Scaffold a new feature following pixelart-pattern-app conventions — API route, Zod validator, optional client component, and Jest test. Use when adding a new resource to the app.
-user-invocable: true
-allowed-tools:
-  - Workflow
----
-
 Ask the user for three things before doing anything:
 1. **Feature name** in kebab-case (e.g. `comments`, `drawing-exports`)
 2. **Auth required?** — does this feature require a logged-in user?

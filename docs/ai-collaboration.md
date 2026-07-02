@@ -6,61 +6,79 @@ Analyse critique de la construction de ce projet avec Claude Code : ce qui a fon
 
 ## Contexte
 
-Cette application a été construite dans une collaboration humain/IA structurée en deux sessions ("Bloc 1" et "Bloc 2"), avec l'humain en rôle de product owner et architecte, et Claude Code en rôle d'implémenteur principal. La répartition était explicite : l'humain définissait les exigences et validait les livrables ; l'IA écrivait le code.
+Cette application a été construite dans une collaboration humain/IA structurée en trois phases, avec l'humain en rôle de product owner et architecte, et Claude Code en rôle d'implémenteur principal. La répartition était explicite : l'humain définissait les exigences et validait les livrables ; l'IA écrivait le code.
+
+- **Phase initiale** : MVP complet — infrastructure Prisma/NextAuth, éditeur pixel art, API CRUD, dashboard, galerie et favoris.
+- **Bloc 1** : Complétion fonctionnelle — tags relationnels, recherche et filtres galerie, pagination, navigation globale.
+- **Bloc 2** : Niveau excellence — intégration Anthropic API, suite de tests Jest, lint propre, accessibilité WCAG 2.1 AA, README et documentation.
 
 ---
 
 ## Ce qui a bien fonctionné
 
-### 1. Génération du scaffolding
+### 1. Génération rapide de code fonctionnel
 
-Claude a généré tout le scaffolding initial (schéma Prisma, config NextAuth, validateurs Zod, structure des routes API, mise en page Tailwind) correctement dès le premier ou deuxième essai. Ce type de code bien typé et bien documenté correspond directement aux données d'entraînement de Claude, et le résultat nécessitait peu de corrections.
+Claude a produit des composants, routes API et hooks fonctionnels en une ou deux itérations : scaffolding Prisma, config NextAuth, validateurs Zod, mise en page Tailwind. Ce type de code bien typé et bien documenté correspond directement à ses données d'entraînement, et le résultat nécessitait peu de corrections.
 
 **Temps gagné** : environ 3–4 heures de mise en place fastidieuse mais pas difficile.
 
-### 2. Propagation d'un changement de schéma dans toute la base de code
+### 2. Respect de l'architecture demandée
 
-Quand l'humain a demandé d'ajouter les tags comme vraie table relationnelle (au lieu d'un tableau JSON), Claude a correctement identifié chaque fichier impacté : schéma Prisma, migration, routes API (GET, PUT, publish), requête galerie, affichage dashboard et favoris. Il a aussi introduit le pattern de clé primaire composite pour `DrawingTag` sans qu'on le lui demande.
+Les conventions définies dans `CLAUDE.md` ont été appliquées de façon consistante sur l'ensemble du projet : App Router, Server Components par défaut, Zod aux frontières API, pas de `localStorage` pour les données métier, `select` Prisma limité aux champs nécessaires. Claude n'a pas dérivé vers des patterns alternatifs de sa propre initiative.
 
-**Observation clé** : L'IA est efficace quand une exigence a un "rayon de blast" clair — tous les fichiers affectés découlent mécaniquement du changement de modèle de données.
+**Observation clé** : Documenter les conventions en amont dans `CLAUDE.md` est la condition pour obtenir une cohérence architecturale entre sessions.
 
-### 3. Débogage des incompatibilités Zod v4
+### 3. Prise en compte du scope du projet
 
-Le projet utilisait Zod v4, qui introduit des changements cassants (`.error.issues` au lieu de `.error.errors`, `refine()` accepte un objet statique et non une fonction). Claude a identifié et corrigé ces problèmes correctement une fois le message d'erreur fourni.
+Pour un MVP pédagogique local, Claude n'a pas sur-ingénié les solutions : pas de Redis, pas de queue, pas de cache distribué, pas de système d'autocomplétion des tags non demandé. Les implémentations restaient proportionnées à l'objectif déclaré.
 
-**Observation clé** : Face à un message d'erreur concret, le débogage de Claude est fiable. Sans l'erreur, il n'aurait pas spontanément audité les changements de version de bibliothèque.
+**Observation clé** : Claude adapte sa réponse au contexte fourni. Préciser "application locale, cours universitaire, pas de déploiement public" dans `CLAUDE.md` a orienté les choix vers la simplicité.
 
-### 4. Accessibilité
+### 4. Justification de la pertinence des changements
 
-Claude a appliqué de façon systématique et cohérente les patterns d'accessibilité WCAG 2.1 AA sur l'ensemble de l'application : skip links, focus trap sur les modales, aria-pressed sur les toggles, aria-live sur les zones dynamiques, rôles sémantiques sur les toasts. La couverture était exhaustive sans qu'on ait à intervenir fichier par fichier.
+Avant chaque modification, Claude listait les fichiers concernés et décrivait brièvement l'impact de chaque changement. Cette transparence permettait à l'humain de valider ou recadrer avant l'exécution, réduisant les retours en arrière coûteux.
+
+**Observation clé** : Ce comportement n'est pas spontané — il a été imposé par la Règle 1 de `CLAUDE.md`. Sans cette contrainte explicite, Claude aurait modifié les fichiers directement.
 
 ---
 
 ## Ce qui a requis le jugement humain
 
-### 1. Décisions produit ambiguës
+### 1. Décomposition en hooks et composants
 
-Quand on a demandé à Claude d'afficher le nom d'utilisateur dans la navbar, il a obéi. Quand l'humain a décidé ensuite que ce nom ne devait *pas* y apparaître, Claude a obéi à nouveau. L'IA n'a pas d'opinion sur le design produit — elle construit ce qu'on lui dit, y compris des choses qui contredisent des choix antérieurs.
+Livrée seule, Claude avait tendance à concentrer la logique dans un unique fichier ou à répliquer du code entre composants plutôt que d'extraire un hook partagé. La découpe en `usePixelGrid`, `useDrawings`, `ColorPalette`, etc. a nécessité que l'humain spécifie explicitement les frontières de responsabilité avant l'implémentation.
 
-**Leçon** : L'humain doit porter la vision produit. Claude exécutera des instructions contradictoires sans signaler l'incohérence.
+**Leçon** : L'IA optimise pour faire fonctionner le cas courant rapidement. La structuration pour la maintenabilité doit être demandée explicitement.
 
-### 2. Décisions de confidentialité
+### 2. Sécurité et confidentialité des données
 
-La première implémentation de la requête galerie sélectionnait `author: { select: { name: true, email: true } }` — exposant l'email. L'humain l'a repéré et demandé que seul `name` soit sélectionné. Claude a appliqué la correction mais n'aurait pas signalé le problème de vie privée de lui-même.
+La première implémentation de la requête galerie sélectionnait `author: { select: { name: true, email: true } }` — exposant l'email de l'auteur. Claude n'a pas signalé le problème de lui-même ; c'est l'humain qui l'a repéré et corrigé. De façon générale, l'IA ne modélise pas les scénarios de menace par défaut.
 
-**Leçon** : L'IA ne modélise pas les scénarios de menace par défaut. Les décisions de sécurité et de confidentialité nécessitent une relecture humaine explicite.
+**Leçon** : Les décisions de sécurité et de confidentialité nécessitent une relecture humaine explicite à chaque route exposant des données utilisateur.
 
-### 3. Dérive du périmètre
+### 3. Définition et respect du périmètre
 
-Claude proposait occasionnellement des fonctionnalités non demandées — par exemple, un composant d'autocomplétion des tags ou une modale de sélection de couleur avancée. Ces suggestions étaient utiles comme options, mais auraient retardé le livrable principal si acceptées sans réflexion.
+Claude proposait occasionnellement des fonctionnalités non demandées — composant d'autocomplétion des tags, modale de sélection de couleur avancée — sans évaluer leur pertinence par rapport aux ambitions du projet. C'est à l'humain de définir le cap des évolutions et l'ordre de mise en place, et de refuser ce qui sort du périmètre.
 
-**Leçon** : Le rôle de l'humain est de maintenir l'honnêteté du périmètre. "Que construire ensuite ?" est une question pour l'humain, pas pour l'IA.
+**Leçon** : "Que construire ensuite ?" est une question pour l'humain, pas pour l'IA.
 
 ---
 
 ## Ce qui a échoué et requis correction
 
-### 1. Rendu Canvas avec `imageRendering: pixelated`
+### 1. Obstination sur les composants déjà corrigés
+
+Après avoir appliqué une correction sur instruction de l'humain, Claude pouvait lors d'une intervention ultérieure revenir à la version précédente du composant — sans que l'humain l'ait demandé. La correction validée était ainsi silencieusement annulée, forçant à la réappliquer.
+
+**Cause racine** : Claude raisonne depuis ses hypothèses initiales et son contexte de session plutôt que depuis l'état courant des fichiers. La Règle 1 (`CLAUDE.md`) — lister explicitement les fichiers à modifier avant d'agir — a été introduite précisément pour forcer une vérification de l'état réel avant toute modification.
+
+### 2. Absence de prise en compte du contexte global
+
+Claude pouvait modifier le comportement d'un composant pour répondre à un besoin très spécifique sans considérer son rôle dans l'ensemble de l'application. Résultat : une correction localement cohérente qui cassait la fonctionnalité dans son ensemble et faisait échouer les tests.
+
+**Cause racine** : L'IA optimise pour la tâche formulée dans le prompt, pas pour les invariants non exprimés du système. Les tests de régression et la revue humaine restent le seul filet de sécurité fiable.
+
+### 3. Rendu Canvas avec `imageRendering: pixelated`
 
 Claude a appliqué `imageRendering: pixelated` au canvas, ce qui rend correctement le pixel art mais pixelise aussi tout texte dessiné via la Canvas 2D API (`ctx.fillText`). Les numéros de coordonnées de la grille devenaient illisibles.
 
@@ -68,41 +86,25 @@ La première tentative de correction de Claude — ajuster la taille de police e
 
 **Cause racine** : Claude raisonnait dans la surface de l'API Canvas sans questionner la frontière de couche de rendu.
 
-### 2. `usePixelGrid` ne chargeant pas les dessins existants
-
-Quand on ouvrait un dessin existant dans l'éditeur, le canvas démarrait toujours vide. Claude avait conçu `usePixelGrid` pour prendre `width` et `height` en paramètres et initialiser une grille vide — mais la fonctionnalité nécessitait de charger les données pixel complètes. La signature du hook était incorrecte dès le départ.
-
-La correction (changer le paramètre en `initialData?: GridData`) était simple une fois le bug observé dans le navigateur. Claude ne l'aurait pas détecté en revue de code car la logique était cohérente en interne — elle résolvait simplement le mauvais problème.
-
-**Cause racine** : L'IA a inféré la responsabilité du hook depuis son nom et ses paramètres, pas depuis le scénario d'utilisation réel. Découvrir le bug nécessitait de lancer l'application.
-
-### 3. Conflits React Compiler / `useCallback`
-
-ESLint (avec la règle React Compiler de Next.js) signalait `useCallback` dans `PixelCanvas.tsx` comme conflictuel avec la stratégie de mémoïsation du compilateur. Claude avait enveloppé la fonction de dessin dans `useCallback` par réflexe — c'est un pattern courant — mais la version React et la config du compilateur du projet le rendaient incorrect.
-
-**Cause racine** : Application d'un pattern généralement correct mais erroné dans un contexte spécifique. L'erreur ESLint était nécessaire pour le surfacer.
-
-### 4. Clés React dupliquées sur les toasts
-
-Le composant `Toast` utilisait `Date.now()` comme identifiant unique. Deux toasts déclenchés dans le même milliseconde (ex: sauvegarde réussie + navigation) généraient des clés identiques, causant une erreur React visible.
-
-**Correction appliquée** : Remplacement de `Date.now()` par un compteur module-level `nextId` incrémenté à chaque appel — garantit l'unicité sur toute la durée de session.
-
 ---
 
 ## Observations structurelles
 
-### L'IA est un bon exécutant, un faible architecte
+### L'IA implémente bien ce qui est spécifié, pas ce qui est implicite
 
-Claude peut implémenter un design spécifié de façon fiable. Il ne peut pas proposer une architecture adaptée à des exigences non fonctionnelles non exprimées (performance, sécurité, confidentialité, maintenabilité). Les décisions d'architecture dans `CLAUDE.md` — App Router, Server Components par défaut, Zod aux frontières API, pas de `localStorage` pour les données métier — ont dû être spécifiées par l'humain à l'avance.
+Claude respecte les conventions documentées dans `CLAUDE.md` et produit du code fonctionnel rapidement — mais uniquement dans le cadre de ce qui lui est explicitement fourni. Sécurité, confidentialité, décomposition en hooks, gestion du périmètre : ces dimensions restent invisibles pour l'IA si elles ne sont pas formulées.
 
-### L'itération est plus efficace que la spécification exhaustive
+### La structuration du code et la vision produit appartiennent à l'humain
 
-Tenter d'écrire une spécification complète en amont (les contrats `.plan.md`) était moins efficace que de construire un prototype fonctionnel et le corriger. Les contrats étaient utiles comme vocabulaire partagé et référence de périmètre, mais les vraies décisions ont émergé en faisant tourner l'application.
+Sans instruction contraire, Claude tend à concentrer la logique dans un seul fichier et à proposer des fonctionnalités qui dépassent le cadre du projet. La découpe en composants et hooks réutilisables, et la décision de ce qui mérite d'être construit, nécessitent une direction humaine explicite.
 
-### L'IA n'accumule pas de contexte entre sessions
+### L'IA optimise localement, pas systémiquement
 
-Claude Code conserve l'historique complet de la conversation dans une session mais repart de zéro dans une nouvelle session. Le fichier `CLAUDE.md` et les contrats `.plan.md` compensent cela en codifiant les conventions persistantes. Sans eux, chaque session nécessiterait de réexpliquer l'architecture depuis le début.
+Claude résout la tâche formulée dans le prompt, mais peut ignorer les invariants du reste de l'application. Une correction localement cohérente peut casser une fonctionnalité dans son ensemble. Les tests de régression et la revue humaine sont le seul filet de sécurité fiable.
+
+### La documentation persistante compense l'absence de mémoire entre sessions
+
+Claude repart de zéro à chaque session et peut revenir sur des corrections déjà appliquées. `CLAUDE.md` et les contrats `.plan.md` codifient les conventions et les décisions validées, rendant le comportement de l'IA plus prévisible d'une session à l'autre.
 
 ---
 
@@ -111,10 +113,11 @@ Claude Code conserve l'historique complet de la conversation dans une session ma
 | Dimension | Verdict |
 |---|---|
 | Vitesse sur les tâches bien définies | Élevée — économise des heures de code répétitif |
-| Qualité sur les patterns bien documentés | Élevée — applique correctement les conventions connues |
-| Jugement architectural | Faible — nécessite guidance humaine explicite |
-| Conscience sécurité / confidentialité | Faible — requiert revue explicite |
-| Découverte de bugs | Faible — détecte les bugs seulement quand les messages d'erreur sont fournis |
-| Cohérence entre sessions | Faible — dépend de la documentation persistante |
+| Respect des conventions documentées | Élevée — applique `CLAUDE.md` de façon consistante |
+| Structuration et décomposition du code | Faible — nécessite une direction explicite |
+| Conscience sécurité / confidentialité | Faible — requiert revue humaine systématique |
+| Gestion du périmètre | Faible — tend à proposer au-delà du scope sans cadrage |
+| Raisonnement systémique | Faible — optimise localement, ignore les invariants globaux |
+| Cohérence entre sessions | Faible — peut réintroduire des corrections déjà appliquées |
 
-**Conclusion** : La collaboration humain/IA est la plus efficace quand l'humain conserve la propriété du "quoi et pourquoi" et délègue le "comment" à l'IA. Dès que l'humain délègue le "quoi" — décisions produit, périmètre, architecture — le résultat dérive vers "techniquement correct mais stratégiquement faux".
+**Conclusion** : La collaboration humain/IA est efficace quand l'humain documente les conventions à l'avance, conserve la propriété des décisions produit et architecturales, et valide chaque modification avant qu'elle soit appliquée. Dès que l'une de ces responsabilités est déléguée à l'IA — structuration du code, périmètre, sécurité — le résultat dérive vers "techniquement correct mais stratégiquement faux".

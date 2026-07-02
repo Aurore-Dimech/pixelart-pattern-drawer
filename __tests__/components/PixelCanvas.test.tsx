@@ -8,6 +8,14 @@ jest.mock("@/lib/pixel-render", () => ({
 
 const GRID: GridData = { width: 4, height: 4, pixels: Array(16).fill("#FFFFFF") };
 
+function mockCanvasSize(canvas: HTMLElement): void {
+  Object.defineProperty(canvas, "getBoundingClientRect", {
+    value: () => ({ left: 0, top: 0, width: 112, height: 112 }),
+  });
+  Object.defineProperty(canvas, "width", { value: 112 });
+  Object.defineProperty(canvas, "height", { value: 112 });
+}
+
 beforeEach(() => jest.clearAllMocks());
 
 describe("PixelCanvas", () => {
@@ -24,11 +32,7 @@ describe("PixelCanvas", () => {
     render(<PixelCanvas grid={GRID} onPaint={onPaint} />);
     const canvas = screen.getByRole("application");
 
-    Object.defineProperty(canvas, "getBoundingClientRect", {
-      value: () => ({ left: 0, top: 0, width: 112, height: 112 }),
-    });
-    Object.defineProperty(canvas, "width", { value: 112 });
-    Object.defineProperty(canvas, "height", { value: 112 });
+    mockCanvasSize(canvas);
 
     fireEvent.mouseDown(canvas, { clientX: 14, clientY: 14 });
     expect(onPaint).toHaveBeenCalledWith(0, 0);
@@ -39,11 +43,7 @@ describe("PixelCanvas", () => {
     render(<PixelCanvas grid={GRID} onPaint={onPaint} />);
     const canvas = screen.getByRole("application");
 
-    Object.defineProperty(canvas, "getBoundingClientRect", {
-      value: () => ({ left: 0, top: 0, width: 112, height: 112 }),
-    });
-    Object.defineProperty(canvas, "width", { value: 112 });
-    Object.defineProperty(canvas, "height", { value: 112 });
+    mockCanvasSize(canvas);
 
     fireEvent.mouseMove(canvas, { clientX: 14, clientY: 14 });
     expect(onPaint).not.toHaveBeenCalled();
@@ -58,11 +58,7 @@ describe("PixelCanvas", () => {
     render(<PixelCanvas grid={GRID} onPaint={onPaint} />);
     const canvas = screen.getByRole("application");
 
-    Object.defineProperty(canvas, "getBoundingClientRect", {
-      value: () => ({ left: 0, top: 0, width: 112, height: 112 }),
-    });
-    Object.defineProperty(canvas, "width", { value: 112 });
-    Object.defineProperty(canvas, "height", { value: 112 });
+    mockCanvasSize(canvas);
 
     fireEvent.mouseDown(canvas, { clientX: 14, clientY: 14 });
     fireEvent.mouseUp(canvas);

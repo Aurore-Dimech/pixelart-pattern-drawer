@@ -30,7 +30,7 @@ describe("POST /api/ai/palette", () => {
     process.env = { ...OLD_ENV, ANTHROPIC_API_KEY: "test-key" };
     jest.mocked(Anthropic).mockImplementation(() => ({
       messages: { create: mockCreate },
-    }));
+    } as unknown as Anthropic));
   });
 
   afterEach(() => {

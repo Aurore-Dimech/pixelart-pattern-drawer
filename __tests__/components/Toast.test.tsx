@@ -41,15 +41,16 @@ describe("ToastProvider", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("Erreur !");
   });
 
-  it("dismisses the toast after 3 seconds", () => {
+  it("dismisses the toast when the CSS animation ends", () => {
     render(
       <ToastProvider>
         <TriggerButton message="Bye" />
       </ToastProvider>
     );
     act(() => { screen.getByRole("button").click(); });
-    expect(screen.getByRole("status")).toBeInTheDocument();
-    act(() => { jest.advanceTimersByTime(3000); });
+    const toastEl = screen.getByRole("status");
+    expect(toastEl).toBeInTheDocument();
+    act(() => { toastEl.dispatchEvent(new Event("animationend", { bubbles: true })); });
     expect(screen.queryByRole("status")).toBeNull();
   });
 

@@ -2,6 +2,8 @@
 
 import { createContext, useCallback, useContext, useState } from "react";
 
+let nextId = 0;
+
 export type ToastType = "success" | "error" | "info";
 
 interface ToastItem {
@@ -26,9 +28,12 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
   const toast = useCallback((message: string, type: ToastType = "success") => {
-    const id = Date.now();
+    const id = ++nextId;
     setToasts((prev) => [...prev, { id, message, type }]);
-    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 3000);
+  }, []);
+
+  const dismiss = useCallback((id: number) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
   return (
@@ -44,6 +49,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             key={t.id}
             role={t.type === "error" ? "alert" : "status"}
             className={`${COLORS[t.type]} text-white text-sm font-medium px-4 py-2.5 rounded-lg shadow-lg animate-toast`}
+            onAnimationEnd={() => dismiss(t.id)}
           >
             {t.message}
           </div>

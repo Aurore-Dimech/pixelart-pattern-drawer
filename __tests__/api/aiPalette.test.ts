@@ -28,7 +28,7 @@ describe("POST /api/ai/palette", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     process.env = { ...OLD_ENV, ANTHROPIC_API_KEY: "test-key" };
-    (Anthropic as jest.Mock).mockImplementation(() => ({
+    jest.mocked(Anthropic).mockImplementation(() => ({
       messages: { create: mockCreate },
     }));
   });
